@@ -1,9 +1,14 @@
-# finosgrid root
+# finosgrid
 .DS_Store
 *.log
 node_modules/
+dist/
 
-# Demo / local build artifacts (datagrid dist is rebuilt by demo)
-perspective/packages/perspective-viewer-datagrid/dist/
-apps/ag-chrome-demo/node_modules/
-apps/ag-chrome-demo/dist/
+# Vendored Perspective checkout is no longer part of this project
+# (depend on @finos/perspective* from npm instead)
+/perspective/
+
+apps/*/node_modules/
+apps/*/dist/
+packages/*/node_modules/
+packages/*/dist/

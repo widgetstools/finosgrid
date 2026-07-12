@@ -1,0 +1,22 @@
+{
+  "name": "finosgrid",
+  "private": true,
+  "version": "0.1.0",
+  "description": "AG Grid–like Perspective datagrid (FINOS compute engine + chrome UI)",
+  "type": "module",
+  "workspaces": [
+    "packages/*",
+    "apps/*"
+  ],
+  "scripts": {
+    "build": "npm run build -w @widgetstools/finosgrid",
+    "test": "npm run test -w @widgetstools/finosgrid",
+    "demo": "npm run start -w ag-chrome-demo",
+    "start": "npm run demo"
+  },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/widgetstools/finosgrid.git"
+  },
+  "license": "Apache-2.0"
+}

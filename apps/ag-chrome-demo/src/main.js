@@ -1,10 +1,8 @@
 import perspective from "@finos/perspective";
 import perspective_viewer from "@finos/perspective-viewer";
 import "@finos/perspective-viewer/dist/css/pro.css";
+import "@widgetstools/finosgrid";
 import "./styles.css";
-
-// Local Phase 1+2 datagrid (built by scripts/build-datagrid.mjs)
-import "../../../perspective/packages/perspective-viewer-datagrid/dist/esm/perspective-viewer-datagrid.js";
 
 import SERVER_WASM from "@finos/perspective/dist/wasm/perspective-server.wasm?url";
 import CLIENT_WASM from "@finos/perspective-viewer/dist/wasm/perspective-viewer.wasm?url";

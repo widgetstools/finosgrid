@@ -1,5 +1,0 @@
-{
-    "load_extensions": {
-        "@finos/perspective-jupyterlab/extension": true
-    }
-}

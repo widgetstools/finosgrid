@@ -1,3 +1,0 @@
-CompileFlags:
-    @CLANGD_ADD_FLAGS@
-    CompilationDatabase: @CMAKE_BINARY_DIR@

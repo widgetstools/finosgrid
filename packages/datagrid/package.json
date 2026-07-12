@@ -1,0 +1,46 @@
+{
+  "name": "@widgetstools/finosgrid",
+  "version": "0.1.0",
+  "description": "AG Grid–like chrome on Perspective datagrid — Quartz theme, floating/set filters, column groups, sticky groups, conditional formatting. Uses the FINOS Perspective compute engine unchanged.",
+  "type": "module",
+  "license": "Apache-2.0",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/widgetstools/finosgrid.git"
+  },
+  "exports": {
+    ".": {
+      "types": "./index.d.ts",
+      "default": "./dist/esm/finosgrid.js"
+    },
+    "./dist/*": "./dist/*",
+    "./package.json": "./package.json"
+  },
+  "files": [
+    "dist/**/*",
+    "index.d.ts",
+    "README.md"
+  ],
+  "scripts": {
+    "build": "node ./build.mjs",
+    "clean": "rm -rf dist",
+    "test": "node --test test/js/chrome_phase1.spec.js"
+  },
+  "publishConfig": {
+    "access": "public"
+  },
+  "peerDependencies": {
+    "@finos/perspective": "^3.8.0",
+    "@finos/perspective-viewer": "^3.8.0"
+  },
+  "dependencies": {
+    "chroma-js": "^1.3.4",
+    "regular-table": "0.6.8"
+  },
+  "devDependencies": {
+    "@finos/perspective": "3.8.0",
+    "@finos/perspective-viewer": "3.8.0",
+    "esbuild": "^0.25.0",
+    "less": "^4.2.2"
+  }
+}
