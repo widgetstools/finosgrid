@@ -1,0 +1,46 @@
+#  ┏━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━┓
+#  ┃ ██████ ██████ ██████       █      █      █      █      █ █▄  ▀███ █       ┃
+#  ┃ ▄▄▄▄▄█ █▄▄▄▄▄ ▄▄▄▄▄█  ▀▀▀▀▀█▀▀▀▀▀ █ ▀▀▀▀▀█ ████████▌▐███ ███▄  ▀█ █ ▀▀▀▀▀ ┃
+#  ┃ █▀▀▀▀▀ █▀▀▀▀▀ █▀██▀▀ ▄▄▄▄▄ █ ▄▄▄▄▄█ ▄▄▄▄▄█ ████████▌▐███ █████▄   █ ▄▄▄▄▄ ┃
+#  ┃ █      ██████ █  ▀█▄       █ ██████      █      ███▌▐███ ███████▄ █       ┃
+#  ┣━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━┫
+#  ┃ Copyright (c) 2017, the Perspective Authors.                              ┃
+#  ┃ ╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌ ┃
+#  ┃ This file is part of the Perspective library, distributed under the terms ┃
+#  ┃ of the [Apache License 2.0](https://www.apache.org/licenses/LICENSE-2.0). ┃
+#  ┗━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━┛
+
+[package]
+name = "perspective"
+version = "3.8.0"
+authors = ["Andrew Stein <steinlink@gmail.com>"]
+edition = "2024"
+description = "A data visualization and analytics component, especially well-suited for large and/or streaming datasets."
+repository = "https://github.com/finos/perspective"
+license = "Apache-2.0"
+homepage = "https://perspective.finos.org"
+keywords = []
+include = ["src/**/*", "tests/**/*", "Cargo.toml"]
+
+[lib]
+crate-type = ["cdylib", "rlib"]
+path = "src/lib.rs"
+
+
+[features]
+default = ["axum-ws"]
+axum-ws = ["tokio", "axum", "futures"]
+external-cpp = [
+    "perspective-server/external-cpp",
+    "perspective-client/generate-proto",
+    "perspective-client/protobuf-src",
+]
+
+[dependencies]
+async-lock = "2.5.0"
+perspective-client = { version = "3.8.0" }
+perspective-server = { version = "3.8.0" }
+tracing = { version = ">=0.1.36" }
+axum = { version = ">=0.8,<0.9", features = ["ws"], optional = true }
+tokio = { version = "~1", features = ["full"], optional = true }
+futures = { version = "~0", optional = true }

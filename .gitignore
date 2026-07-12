@@ -1,0 +1,6 @@
+# finosgrid root
+.DS_Store
+*.log
+node_modules/
+
+# Keep perspective's own ignore rules for nested paths

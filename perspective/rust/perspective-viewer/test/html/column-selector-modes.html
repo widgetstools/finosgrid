@@ -1,0 +1,50 @@
+<!doctype html>
+<html>
+    <head>
+        <script type="module" src="/node_modules/@finos/perspective-viewer/dist/cdn/perspective-viewer.js"></script>
+        <link rel="stylesheet" href="../css/demo.css" />
+        <link rel="stylesheet" href="/node_modules/@finos/perspective-viewer/dist/css/pro.css" />
+        <link rel="stylesheet" href="/node_modules/@fontsource/roboto-mono/400.css" />
+    </head>
+    <body>
+        <script type="module">
+            import perspective from "/node_modules/@finos/perspective/dist/cdn/perspective.js";
+
+            class TestChartPlugin extends customElements.get("perspective-viewer-plugin") {
+                get name() {
+                    return "test chart";
+                }
+
+                get select_mode() {
+                    return "toggle";
+                }
+
+                get config_column_names() {
+                    return ["X Axis", "Y Axis", "Color", "Size", "Tooltip"];
+                }
+
+                get min_config_columns() {
+                    return 2;
+                }
+            }
+
+            customElements.define("test-chart-plugin", TestChartPlugin);
+            const Viewer = customElements.get("perspective-viewer");
+            Viewer.registerPlugin("test-chart-plugin");
+
+            const viewer = document.createElement("perspective-viewer");
+            document.body.appendChild(viewer);
+
+            var xhr = new XMLHttpRequest();
+            xhr.open("GET", "superstore.csv", true);
+            xhr.onload = async function () {
+                window.__CSV__ = xhr.response;
+                window.__WORKER__ = perspective.worker();
+                const table = window.__WORKER__.table(xhr.response);
+                const t = await table;
+                await viewer.load(table);
+            };
+            xhr.send(null);
+        </script>
+    </body>
+</html>

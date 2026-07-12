@@ -1,0 +1,68 @@
+{
+    "name": "@finos/perspective",
+    "version": "3.8.0",
+    "description": "",
+    "repository": {
+        "type": "git",
+        "url": "https://github.com/finos/perspective"
+    },
+    "type": "module",
+    "license": "Apache-2.0",
+    "unpkg": "dist/cdn/perspective.js",
+    "jsdelivr": "dist/cdn/perspective.js",
+    "exports": {
+        ".": {
+            "node": {
+                "types": "./dist/esm/perspective.node.d.ts",
+                "default": "./dist/esm/perspective.node.js"
+            },
+            "types": "./dist/esm/perspective.browser.d.ts",
+            "default": "./dist/esm/perspective.js"
+        },
+        "./node": {
+            "types": "./dist/esm/perspective.node.d.ts",
+            "default": "./dist/esm/perspective.node.js"
+        },
+        "./dist/*": "./dist/*",
+        "./src/*": "./src/*",
+        "./test/*": "./test/*",
+        "./package.json": "./package.json",
+        "./tsconfig.json": "./tsconfig.json"
+    },
+    "files": [
+        "dist/**/*",
+        "src/**/*",
+        "tsconfig.json"
+    ],
+    "scripts": {
+        "build": "node ./build.mjs",
+        "clean": "node ./clean.mjs",
+        "docs": "node ./docs..mjs"
+    },
+    "publishConfig": {
+        "access": "public"
+    },
+    "dependencies": {
+        "pro_self_extracting_wasm": "catalog:",
+        "stoppable": "catalog:",
+        "ws": "catalog:"
+    },
+    "devDependencies": {
+        "@finos/perspective-esbuild-plugin": "workspace:",
+        "@finos/perspective-metadata": "workspace:",
+        "@finos/perspective-server": "workspace:",
+        "@finos/perspective-test": "workspace:",
+        "@playwright/experimental-ct-react": "catalog:",
+        "@playwright/test": "catalog:",
+        "@types/node": "catalog:",
+        "@types/ws": "catalog:",
+        "@types/stoppable": "catalog:",
+        "apache-arrow": "catalog:",
+        "superstore-arrow": "catalog:",
+        "lodash": "catalog:",
+        "moment": "catalog:",
+        "typedoc": "catalog:",
+        "typescript": "catalog:",
+        "zx": "catalog:"
+    }
+}

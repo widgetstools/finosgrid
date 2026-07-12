@@ -1,0 +1,21 @@
+{
+    "name": "@finos/perspective-server",
+    "private": true,
+    "author": "The Perspective Authors",
+    "license": "Apache-2.0",
+    "version": "3.8.0",
+    "main": "./dist/esm/perspective.cpp.js",
+    "files": [
+        "dist/esm/**/*",
+        "dist/cjs/**/*"
+    ],
+    "scripts": {
+        "build": "node ./build.mjs",
+        "clean": "node ./clean.mjs"
+    },
+    "devDependencies": {
+        "pro_self_extracting_wasm": "catalog:",
+        "typescript": "catalog:",
+        "zx": "catalog:"
+    }
+}
