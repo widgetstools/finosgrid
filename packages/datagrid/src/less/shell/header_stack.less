@@ -26,7 +26,14 @@
     z-index: 2;
 }
 
-.fg-shell__group-rows,
+.fg-shell__group-rows {
+    display: flex;
+    flex-direction: column;
+    flex: 0 0 auto;
+    overflow: hidden;
+}
+
+.fg-shell__group-row,
 .fg-shell__leaf-row,
 .fg-shell__filter-row {
     display: flex;
