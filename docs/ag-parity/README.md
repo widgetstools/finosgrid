@@ -10,7 +10,7 @@ Reference app: `apps/ag-grid-reference` (Enterprise **v36**, Quartz).
 
 | Feature | Research | Screenshots | finosgrid status |
 |---|---|---|---|
-| Quartz theme | [theme-quartz](./theme-quartz/research.md) | pending | partial |
+| Quartz theme | [theme-quartz](./theme-quartz/research.md) | shell | done (parameter Theme API) |
 | Floating filters | [floating-filters](./floating-filters/research.md) | captured | under headers via shell (target) |
 | Set filter | [set-filter](./set-filter/research.md) | pending | chrome only |
 | Column groups | [column-groups](./column-groups/research.md) | spike shot | **shell spike pass** |
@@ -18,7 +18,7 @@ Reference app: `apps/ag-grid-reference` (Enterprise **v36**, Quartz).
 | Row / cell / range selection | [selection](./selection/research.md) · [catalog §3.6](../superpowers/specs/2026-07-12-ag-grid-complete-feature-catalog.md) | shell | done (feature/selection) |
 | Tree data | [tree-data](./tree-data/research.md) | pending | planned |
 | Master detail | [master-detail](./master-detail/research.md) | pending | planned |
-| Context / column menus | [context-menu](./context-menu/research.md) | pending | not started |
+| Context / column menus | [context-menu](./context-menu/research.md) | shell | partial (header + cell) |
 | Conditional formatting | [conditional-formatting](./conditional-formatting/research.md) | pending | partial |
 | Columns tool panel | [columns-panel](./columns-panel/research.md) | pending | not started |
 | Pivot | [pivot](./pivot/research.md) | pending | chrome only |

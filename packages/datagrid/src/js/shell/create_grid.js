@@ -23,6 +23,20 @@ import {
 } from "./selection_options.js";
 import { createRowSelectionController } from "./row_selection.js";
 import { createCellSelectionController } from "./cell_selection.js";
+import {
+    normalizeTheme,
+    applyTheme,
+    setThemeMode,
+    getThemeMode,
+} from "./theme.js";
+import {
+    createContextMenuController,
+    resolveMenuItems,
+    defaultColumnMenuItems,
+    defaultAutoGroupColumnMenuItems,
+    defaultGroupHeaderMenuItems,
+    defaultCellContextMenuItems,
+} from "./context_menu.js";
 
 /**
  * @typedef {import('./ag_types.js').GridOptions} GridOptions
@@ -77,6 +91,15 @@ export function createGrid(eGridDiv, gridOptions = {}) {
     const root = document.createElement("div");
     root.className = "fg-shell";
     root.setAttribute("role", "grid");
+
+    /** @type {ReturnType<typeof normalizeTheme>} */
+    let theme = normalizeTheme(options.theme);
+    /** @type {string} */
+    let themeMode =
+        options.themeMode === "dark" || options.themeMode === "light"
+            ? options.themeMode
+            : "light";
+    applyTheme(root, theme, themeMode);
 
     let syncing = false;
     /** @type {any} */
@@ -374,6 +397,272 @@ export function createGrid(eGridDiv, gridOptions = {}) {
     root.append(header.el, body.el);
     eGridDiv.appendChild(root);
 
+    const popupMenus = createContextMenuController({
+        // Menus mount on document.body (avoids .fg-shell overflow clipping);
+        // theme host supplies --fg-* tokens + data-ag-theme-mode.
+        getThemeHost: () => root,
+    });
+
+    function findLeafDef(field) {
+        return (
+            getVisibleLeafDefs().find(
+                (l) => leafField(l) === field || l.colId === field,
+            ) || null
+        );
+    }
+
+    function columnMenuActions(field) {
+        return {
+            sortAscending() {
+                columnState.setSort(field, "asc");
+                header.render();
+                scheduleRefreshFromColumnState("sort");
+            },
+            sortDescending() {
+                columnState.setSort(field, "desc");
+                header.render();
+                scheduleRefreshFromColumnState("sort");
+            },
+            sortUnSort() {
+                columnState.setSort(field, null);
+                header.render();
+                scheduleRefreshFromColumnState("sort");
+            },
+            pinLeft() {
+                columnState.setPin(field, "left");
+                header.render();
+                scheduleRefreshFromColumnState("pin");
+            },
+            pinRight() {
+                columnState.setPin(field, "right");
+                header.render();
+                scheduleRefreshFromColumnState("pin");
+            },
+            pinNone() {
+                columnState.setPin(field, null);
+                header.render();
+                scheduleRefreshFromColumnState("pin");
+            },
+            autoSizeThis() {
+                const measured = body.measureColumnWidths?.() || {};
+                const w = measured[field];
+                if (w) {
+                    columnState.setWidth(field, Math.ceil(w + 8));
+                    header.render();
+                    scheduleRefreshFromColumnState("resize");
+                }
+            },
+            autoSizeAll() {
+                const measured = body.measureColumnWidths?.() || {};
+                for (const [f, w] of Object.entries(measured)) {
+                    if (f === SELECTION_COL_ID) continue;
+                    columnState.setWidth(f, Math.ceil(w + 8));
+                }
+                header.render();
+                scheduleRefreshFromColumnState("resize");
+            },
+            async copy(ctx) {
+                const text = ctx?.value != null ? String(ctx.value) : "";
+                try {
+                    await navigator.clipboard?.writeText?.(text);
+                } catch {
+                    /* ignore */
+                }
+            },
+            async copyWithHeaders(ctx) {
+                const headerName =
+                    findLeafDef(field)?.headerName || field || "";
+                const text = `${headerName}\t${ctx?.value ?? ""}`;
+                try {
+                    await navigator.clipboard?.writeText?.(text);
+                } catch {
+                    /* ignore */
+                }
+            },
+        };
+    }
+
+    function openColumnHeaderMenu(field, clientX, clientY) {
+        if (
+            !field ||
+            field === SELECTION_COL_ID ||
+            options.suppressHeaderContextMenu
+        ) {
+            return;
+        }
+        const leaf = findLeafDef(field);
+        const sortState = columnState.getSort();
+        const rowGrouped = getRowGroupConfig().groupBy.length > 0;
+        const isAutoGroup = field === AUTO_GROUP_COL_ID;
+        const context = {
+            field,
+            column: leaf,
+            pin: columnState.getPin(field) ?? null,
+            sort: sortState.colId === field ? sortState.sort : null,
+            sortable:
+                !isAutoGroup &&
+                leaf?.sortable !== false &&
+                options.defaultColDef?.sortable !== false,
+            pinnable: leaf?.lockPinned !== true,
+            hasRowGroups: rowGrouped,
+            hasColumnGroups: Object.keys(columnTree.getOpenState()).length > 0,
+        };
+        const defaultItems =
+            isAutoGroup && rowGrouped
+                ? defaultAutoGroupColumnMenuItems()
+                : defaultColumnMenuItems();
+        const raw =
+            typeof leaf?.mainMenuItems !== "undefined"
+                ? leaf.mainMenuItems
+                : options.getMainMenuItems || defaultItems;
+        const actions = {
+            ...columnMenuActions(field),
+            expandAll() {
+                return body.expandAllGroups?.();
+            },
+            contractAll() {
+                return body.collapseAllGroups?.();
+            },
+        };
+        const items = resolveMenuItems(raw, {
+            defaultItems,
+            actions,
+            context,
+        });
+        popupMenus.showPopup({ x: clientX, y: clientY, items });
+    }
+
+    function notifyColumnGroupOpened(groupId, opened) {
+        options.onColumnGroupOpened?.({
+            api,
+            groupId,
+            opened,
+            columnGroupState: columnTree.getColumnGroupState(),
+        });
+    }
+
+    function openGroupHeaderMenu(groupId, expandable, clientX, clientY) {
+        if (!groupId || options.suppressHeaderContextMenu) return;
+        const groupIds = Object.keys(columnTree.getOpenState());
+        const actions = {
+            expandGroup() {
+                columnTree.setOpen(groupId, true);
+                header.render();
+                notifyColumnGroupOpened(groupId, true);
+                void refresh();
+            },
+            collapseGroup() {
+                columnTree.setOpen(groupId, false);
+                header.render();
+                notifyColumnGroupOpened(groupId, false);
+                void refresh();
+            },
+            expandAll() {
+                columnTree.setAllOpen(true);
+                header.render();
+                notifyColumnGroupOpened(null, true);
+                void refresh();
+            },
+            contractAll() {
+                columnTree.setAllOpen(false);
+                header.render();
+                notifyColumnGroupOpened(null, false);
+                void refresh();
+            },
+            autoSizeThis() {
+                const leaves = header.getLeafFields();
+                const measured = body.measureColumnWidths?.() || {};
+                for (const f of leaves) {
+                    if (measured[f]) {
+                        columnState.setWidth(f, Math.ceil(measured[f] + 8));
+                    }
+                }
+                header.render();
+                scheduleRefreshFromColumnState("resize");
+            },
+        };
+        const items = resolveMenuItems(
+            options.getMainMenuItems || defaultGroupHeaderMenuItems(),
+            {
+                defaultItems: defaultGroupHeaderMenuItems(),
+                actions,
+                context: {
+                    groupId,
+                    columnGroup: { groupId },
+                    expandable: expandable !== false,
+                    groupOpen: columnTree.isOpen(groupId),
+                    hasColumnGroups: groupIds.length > 0,
+                },
+            },
+        );
+        popupMenus.showPopup({ x: clientX, y: clientY, items });
+    }
+
+    function openCellContextMenu(field, value, clientX, clientY) {
+        if (options.suppressContextMenu) return;
+        if (!field || field === SELECTION_COL_ID) return;
+        const leaf = findLeafDef(field);
+        const sortState = columnState.getSort();
+        const context = {
+            field,
+            value,
+            column: leaf,
+            pin: columnState.getPin(field) ?? null,
+            sort: sortState.colId === field ? sortState.sort : null,
+            sortable: leaf?.sortable !== false,
+            pinnable: leaf?.lockPinned !== true,
+        };
+        const raw =
+            typeof leaf?.contextMenuItems !== "undefined"
+                ? leaf.contextMenuItems
+                : options.getContextMenuItems || defaultCellContextMenuItems();
+        const items = resolveMenuItems(raw, {
+            defaultItems: defaultCellContextMenuItems(),
+            actions: columnMenuActions(field),
+            context,
+        });
+        popupMenus.showPopup({ x: clientX, y: clientY, items });
+        options.onCellContextMenu?.({
+            api,
+            field,
+            value,
+            type: "cellContextMenu",
+        });
+    }
+
+    root.addEventListener("contextmenu", (e) => {
+        if (e.ctrlKey && options.allowContextMenuWithControlKey !== true) {
+            return;
+        }
+        const leafCell = e.target?.closest?.(".fg-shell__leaf-cell");
+        if (leafCell?.dataset?.field) {
+            e.preventDefault();
+            openColumnHeaderMenu(leafCell.dataset.field, e.clientX, e.clientY);
+            return;
+        }
+        const groupCell = e.target?.closest?.(".fg-shell__group-cell");
+        if (groupCell?.dataset?.groupId) {
+            e.preventDefault();
+            openGroupHeaderMenu(
+                groupCell.dataset.groupId,
+                groupCell.dataset.expandable === "1",
+                e.clientX,
+                e.clientY,
+            );
+            return;
+        }
+        const td = e.target?.closest?.(".fg-shell__body-rt tbody td");
+        if (td?.dataset?.field) {
+            e.preventDefault();
+            openCellContextMenu(
+                td.dataset.field,
+                td.textContent,
+                e.clientX,
+                e.clientY,
+            );
+        }
+    });
+
     // Column selection via header leaf click (AG enableColumnSelection)
     header.el.addEventListener("click", (e) => {
         const opts = cellSelectionOpts;
@@ -616,6 +905,18 @@ export function createGrid(eGridDiv, gridOptions = {}) {
                 body.refreshSelectionPaint?.();
                 return;
             }
+            if (key === "theme") {
+                theme = normalizeTheme(value);
+                options.theme = theme;
+                applyTheme(root, theme, themeMode);
+                return;
+            }
+            if (key === "themeMode") {
+                themeMode = value === "dark" ? "dark" : "light";
+                options.themeMode = themeMode;
+                setThemeMode(root, themeMode, theme);
+                return;
+            }
             if (key === "rowData" || key === "loadColumns" || key === "table") {
                 void refresh();
                 return;
@@ -644,6 +945,14 @@ export function createGrid(eGridDiv, gridOptions = {}) {
 
         getRowGroupColumns() {
             return getRowGroupConfig().groupBy.slice();
+        },
+
+        expandAll() {
+            return body.expandAllGroups?.() ?? Promise.resolve();
+        },
+
+        collapseAll() {
+            return body.collapseAllGroups?.() ?? Promise.resolve();
         },
 
         setColumnAggFunc(key, aggFunc) {
@@ -812,7 +1121,49 @@ export function createGrid(eGridDiv, gridOptions = {}) {
             cellSelection.clearCellSelection();
         },
 
+        /** AG-style theme mode: `'light' | 'dark'`. */
+        setThemeMode(mode) {
+            themeMode = mode === "dark" ? "dark" : "light";
+            options.themeMode = themeMode;
+            setThemeMode(root, themeMode, theme);
+        },
+
+        getThemeMode() {
+            return getThemeMode(root);
+        },
+
+        hidePopupMenu() {
+            popupMenus.hidePopupMenu();
+        },
+
+        showColumnMenu(colKey) {
+            const field =
+                typeof colKey === "string" ? colKey : colKey?.field || colKey?.colId;
+            if (!field) return;
+            const leafEl = root.querySelector(
+                `.fg-shell__leaf-cell[data-field="${CSS.escape(field)}"]`,
+            );
+            const rect = leafEl?.getBoundingClientRect?.();
+            openColumnHeaderMenu(
+                field,
+                rect ? rect.left : 8,
+                rect ? rect.bottom + 2 : 8,
+            );
+        },
+
+        showContextMenu(params = {}) {
+            const field = params.column?.field || params.field;
+            const value = params.value;
+            openCellContextMenu(
+                field,
+                value,
+                params.x ?? 8,
+                params.y ?? 8,
+            );
+        },
+
         async destroy() {
+            popupMenus.hidePopupMenu();
             clearTimeout(filterDebounce);
             clearTimeout(updateDebounce);
             viewGen += 1;

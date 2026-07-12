@@ -221,6 +221,17 @@ export function createColumnTree({
         },
 
         /**
+         * Open or close every column group.
+         * @param {boolean} open
+         */
+        setAllOpen(open) {
+            const next = !!open;
+            for (const id of Object.keys(openState)) {
+                openState[id] = next;
+            }
+        },
+
+        /**
          * @param {string} groupId
          */
         toggleOpen(groupId) {

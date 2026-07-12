@@ -89,6 +89,7 @@ For each feature: **UI** · **Behavior** · **Object model** · **API / events**
 | **Behavior** | Row height, header height, compact density; cell/row class rules; conditional formatting via `cellClassRules` / `cellStyle` |
 | **Model** | `theme`, `rowHeight`, `headerHeight`, `getRowStyle`, `getRowClass`, `cellClassRules` |
 | **API** | `setGridOption('theme'…]`, redraw; no dedicated “theme API” beyond options |
+| **finosgrid** | Shell: `themeQuartz.withParams` + `themeMode` / `setThemeMode` → `--ag-*` / `--fg-*` CSS vars (see [theme-quartz research](../../ag-parity/theme-quartz/research.md)) |
 
 ### 3.2 Columns — structure & state **(C)** (+ groups polish **(C/E)**)
 
@@ -654,7 +655,7 @@ With Clipboard + Excel + Charts modules: **Copy**, **Copy with Headers**, **Copy
 | Sorting / filtering (Perspective view) | Partial |
 | Row selection / cell & range selection | Done on `feature/selection` — see catalog §3.6 |
 | Pin columns / column state | Partial |
-| Context menu / column menu | Not started |
+| Context menu / column menu | Partial — header + group + cell context menus on `feature/context-menu` |
 | Side bar / tool panels | Not started |
 | Master Detail | **Planned** → [plan](../plans/2026-07-12-master-detail-and-tree-data.md) |
 | Tree Data | **Planned** → same plan |

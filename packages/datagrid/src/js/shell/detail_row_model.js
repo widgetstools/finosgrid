@@ -222,6 +222,75 @@ export function detailFilterForPath(groupBy, path, baseFilter = []) {
 }
 
 /**
+ * One Perspective view: group_by + count aggregate + full `set_depth`.
+ * Returns finest-path → underlying leaf row count (no per-group detail views).
+ *
+ * @param {{
+ *   table: any,
+ *   groupBy: string[],
+ *   filter?: Array<[string, string, any]>,
+ *   countField?: string,
+ * }} opts
+ * @returns {Promise<Map<string, number>>}
+ */
+export async function fetchFinestGroupCounts({
+    table,
+    groupBy,
+    filter = [],
+    countField,
+} = {}) {
+    /** @type {Map<string, number>} */
+    const out = new Map();
+    if (!table?.view || !groupBy?.length) return out;
+
+    // Prefer an explicit non-group column so "count" is unambiguous.
+    const field = countField || groupBy[0];
+    if (!field) return out;
+
+    /** @type {Record<string, any>} */
+    const config = {
+        group_by: groupBy.slice(),
+        columns: [field],
+        aggregates: { [field]: "count" },
+    };
+    if (filter?.length) config.filter = filter;
+
+    let view = null;
+    try {
+        view = await table.view(config);
+        if (typeof view.set_depth === "function") {
+            await view.set_depth(groupBy.length);
+        }
+        const n = await view.num_rows();
+        if (!n) return out;
+        const cols = await view.to_columns({
+            start_row: 0,
+            end_row: n,
+            start_col: 0,
+            end_col: 1,
+        });
+        const paths = cols.__ROW_PATH__ || [];
+        const counts = cols[field] || [];
+        for (let i = 0; i < paths.length; i++) {
+            const path = paths[i] || [];
+            if (path.length !== groupBy.length) continue;
+            out.set(pathKey(path), Number(counts[i]) || 0);
+        }
+    } catch {
+        /* table/view mid-replace */
+    } finally {
+        if (view) {
+            try {
+                await view.delete();
+            } catch {
+                /* already deleted */
+            }
+        }
+    }
+    return out;
+}
+
+/**
  * @param {object} options
  * @param {() => any} options.getTable - Perspective table
  * @param {() => string[]} options.getGroupBy
@@ -238,6 +307,9 @@ export function createDetailRowModel({
 } = {}) {
     /** @type {Set<string>} */
     const detailExpanded = new Set();
+    /** pathKey → leaf count (from batch count view or ensureDetail) */
+    /** @type {Map<string, number>} */
+    const detailCountCache = new Map();
     /** @type {Map<string, { view: any, numRows: number, path: any[] }>} */
     const detailCache = new Map();
     /** @type {any[]} */
@@ -245,6 +317,18 @@ export function createDetailRowModel({
     /** @type {VirtualRow[]} */
     let rowMap = [];
     let mapGen = 0;
+    /** Sticky expand-all mode — survives streaming `rebuild` races. */
+    let expandAllLeaves = false;
+
+    function pickCountField(groupBy) {
+        const fields = getViewFields?.() || [];
+        const preferred = ["positionId", "asOf", "meta.updateSeq"];
+        for (const p of preferred) {
+            if (fields.includes(p) && !groupBy.includes(p)) return p;
+        }
+        const hit = fields.find((f) => f && !groupBy.includes(f));
+        return hit || fields[0] || groupBy[0];
+    }
 
     async function deleteDetail(key) {
         const entry = detailCache.get(key);
@@ -277,9 +361,117 @@ export function createDetailRowModel({
         } catch {
             numRows = 0;
         }
+        detailCountCache.set(key, numRows);
         const entry = { view, numRows, path };
         detailCache.set(key, entry);
         return entry;
+    }
+
+    /**
+     * Collect visible finest-group keys from current groupPaths.
+     * @param {number} groupByLen
+     */
+    function visibleFinestKeys(groupByLen) {
+        const keys = new Set();
+        for (const path of groupPaths) {
+            if (isDetailExpandable(path, groupByLen)) {
+                keys.add(pathKey(path));
+            }
+        }
+        return keys;
+    }
+
+    async function loadGroupPaths(groupView) {
+        let n = 0;
+        try {
+            n = await groupView.num_rows();
+        } catch {
+            n = 0;
+        }
+        if (!n) return [];
+        try {
+            const cols = await groupView.to_columns({
+                start_row: 0,
+                end_row: n,
+                start_col: 0,
+                end_col: 1,
+            });
+            return cols.__ROW_PATH__ || [];
+        } catch {
+            return [];
+        }
+    }
+
+    /**
+     * Apply expand-all leaf state using one Perspective count view.
+     * Detail filtered views stay lazy (created in fetchWindow).
+     * @param {any} groupView
+     * @param {number} gen
+     */
+    async function applyExpandAllLeaves(groupView, gen) {
+        const groupBy = getGroupBy() || [];
+        const table = getTable?.();
+        if (!groupView || !groupBy.length || !table) return rowMap;
+
+        groupPaths = await loadGroupPaths(groupView);
+        if (gen !== mapGen) return rowMap;
+
+        const visibleLeafKeys = visibleFinestKeys(groupBy.length);
+        const missing = [...visibleLeafKeys].some(
+            (k) => !detailCountCache.has(k),
+        );
+        if (missing || detailCountCache.size < visibleLeafKeys.size) {
+            const batchCounts = await fetchFinestGroupCounts({
+                table,
+                groupBy,
+                filter: getFilter() || [],
+                countField: pickCountField(groupBy),
+            });
+            if (gen !== mapGen) return rowMap;
+            for (const key of visibleLeafKeys) {
+                detailCountCache.set(key, batchCounts.get(key) || 0);
+            }
+        }
+
+        detailExpanded.clear();
+        for (const key of visibleLeafKeys) {
+            detailExpanded.add(key);
+        }
+
+        // Drop stale detail views; viewport scroll recreates what it needs
+        for (const key of [...detailCache.keys()]) {
+            if (!visibleLeafKeys.has(key)) await deleteDetail(key);
+        }
+
+        /** @type {Map<string, number>} */
+        const counts = new Map();
+        for (const key of visibleLeafKeys) {
+            counts.set(key, detailCountCache.get(key) || 0);
+        }
+        rowMap = buildVirtualRowMap(groupPaths, counts, groupBy.length);
+        return rowMap;
+    }
+
+    /**
+     * Resolve detail counts without opening a filtered view per group when
+     * counts are already cached (expand-all path).
+     * @param {Set<string>} visibleLeafKeys
+     * @param {number} gen
+     */
+    async function resolveCounts(visibleLeafKeys, gen) {
+        /** @type {Map<string, number>} */
+        const counts = new Map();
+        for (const key of detailExpanded) {
+            if (!visibleLeafKeys.has(key)) continue;
+            if (detailCountCache.has(key)) {
+                counts.set(key, detailCountCache.get(key) || 0);
+                continue;
+            }
+            const entry = await ensureDetail(pathFromKey(key));
+            if (gen !== mapGen) return counts;
+            counts.set(key, entry.numRows || 0);
+        }
+        return counts;
     }
 
     /**
@@ -295,58 +487,49 @@ export function createDetailRowModel({
             rowMap = [];
             for (const key of [...detailCache.keys()]) await deleteDetail(key);
             detailExpanded.clear();
+            detailCountCache.clear();
+            expandAllLeaves = false;
             return rowMap;
         }
 
-        let n = 0;
-        try {
-            n = await groupView.num_rows();
-        } catch {
-            n = 0;
+        // Expand-all is sticky across Perspective on_update → rebuild races.
+        if (expandAllLeaves) {
+            return applyExpandAllLeaves(groupView, gen);
         }
-        /** @type {any[]} */
-        let paths = [];
-        if (n > 0) {
-            try {
-                const cols = await groupView.to_columns({
-                    start_row: 0,
-                    end_row: n,
-                    start_col: 0,
-                    end_col: 1,
-                });
-                paths = cols.__ROW_PATH__ || [];
-            } catch {
-                paths = [];
-            }
-        }
-        if (gen !== mapGen) return rowMap;
-        groupPaths = paths;
 
-        // Drop detail caches that are collapsed or no longer visible
-        const visibleLeafKeys = new Set();
-        for (const path of groupPaths) {
-            if (isDetailExpandable(path, groupBy.length)) {
-                visibleLeafKeys.add(pathKey(path));
-            }
-        }
+        groupPaths = await loadGroupPaths(groupView);
+        if (gen !== mapGen) return rowMap;
+
+        const visibleLeafKeys = visibleFinestKeys(groupBy.length);
         for (const key of [...detailCache.keys()]) {
             if (!detailExpanded.has(key) || !visibleLeafKeys.has(key)) {
                 await deleteDetail(key);
             }
         }
-
-        /** @type {Map<string, number>} */
-        const counts = new Map();
-        for (const key of detailExpanded) {
-            if (!visibleLeafKeys.has(key)) continue;
-            const path = pathFromKey(key);
-            const entry = await ensureDetail(path);
-            if (gen !== mapGen) return rowMap;
-            counts.set(key, entry.numRows || 0);
+        for (const key of [...detailCountCache.keys()]) {
+            if (!detailExpanded.has(key) || !visibleLeafKeys.has(key)) {
+                detailCountCache.delete(key);
+            }
         }
+
+        const counts = await resolveCounts(visibleLeafKeys, gen);
+        if (gen !== mapGen) return rowMap;
 
         rowMap = buildVirtualRowMap(groupPaths, counts, groupBy.length);
         return rowMap;
+    }
+
+    /**
+     * Expand Perspective tree to full depth (caller) then open every finest
+     * group to leaf rows. Uses one count aggregate view — detail filtered
+     * views are created lazily on scroll via {@link fetchWindow}.
+     * @param {any} groupView
+     */
+    async function expandAllToLeaves(groupView) {
+        expandAllLeaves = true;
+        detailCountCache.clear();
+        const gen = ++mapGen;
+        return applyExpandAllLeaves(groupView, gen);
     }
 
     /**
@@ -357,12 +540,15 @@ export function createDetailRowModel({
     async function toggleDetail(path) {
         const key = pathKey(path);
         if (detailExpanded.has(key)) {
+            expandAllLeaves = false;
             detailExpanded.delete(key);
+            detailCountCache.delete(key);
             await deleteDetail(key);
             return false;
         }
         detailExpanded.add(key);
-        await ensureDetail(path);
+        const entry = await ensureDetail(path);
+        detailCountCache.set(key, entry.numRows || 0);
         return true;
     }
 
@@ -411,7 +597,6 @@ export function createDetailRowModel({
             let start_col = 0;
             let end_col = Math.max(1, viewFields.length);
             if (viewFields.length) {
-                // fetch all view fields from col 0 — simpler than sparse
                 end_col = viewFields.length;
             }
             try {
@@ -438,7 +623,7 @@ export function createDetailRowModel({
             }
         }
 
-        // --- batch detail rows by pathKey ---
+        // --- batch detail rows by pathKey (lazy ensureDetail per visible path) ---
         /** @type {Map<string, number[]>} */
         const byKey = new Map();
         for (let i = 0; i < slice.length; i++) {
@@ -465,9 +650,9 @@ export function createDetailRowModel({
                 });
                 for (const i of indices) {
                     const local = slice[i].detailY - d0;
-                    pathsOut[i] = slice[i].path; // parent path for indent
+                    pathsOut[i] = slice[i].path;
                     if (autoGroupColId in out) {
-                        out[autoGroupColId][i] = null; // leaf: blank group cell
+                        out[autoGroupColId][i] = null;
                     }
                     for (const f of viewFields) {
                         out[f][i] = cols[f]?.[local] ?? null;
@@ -490,16 +675,27 @@ export function createDetailRowModel({
         mapGen += 1;
         groupPaths = [];
         rowMap = [];
+        expandAllLeaves = false;
         detailExpanded.clear();
+        detailCountCache.clear();
+        for (const key of [...detailCache.keys()]) await deleteDetail(key);
+    }
+
+    async function closeAllDetails() {
+        expandAllLeaves = false;
+        detailExpanded.clear();
+        detailCountCache.clear();
         for (const key of [...detailCache.keys()]) await deleteDetail(key);
     }
 
     return {
         rebuild,
+        expandAllToLeaves,
         toggleDetail,
         isDetailOpen,
         fetchWindow,
         clear,
+        closeAllDetails,
         get rowMap() {
             return rowMap;
         },
@@ -508,6 +704,18 @@ export function createDetailRowModel({
         },
         getVirtualRow(y) {
             return rowMap[y] || null;
+        },
+        /** @internal test helper */
+        _detailCacheSize() {
+            return detailCache.size;
+        },
+        /** @internal test helper */
+        _expandedSize() {
+            return detailExpanded.size;
+        },
+        /** @internal test helper */
+        _isExpandAllLeaves() {
+            return expandAllLeaves;
         },
     };
 }

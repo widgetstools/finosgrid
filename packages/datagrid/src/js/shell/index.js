@@ -68,6 +68,29 @@ export {
 export { createRowSelectionController } from "./row_selection.js";
 export { createCellSelectionController } from "./cell_selection.js";
 export {
+    createContextMenuController,
+    resolveMenuItems,
+    defaultColumnMenuItems,
+    defaultAutoGroupColumnMenuItems,
+    defaultGroupHeaderMenuItems,
+    defaultCellContextMenuItems,
+    applyPopupTheme,
+} from "./context_menu.js";
+export {
+    themeQuartz,
+    createTheme,
+    applyTheme,
+    setThemeMode,
+    getThemeMode,
+    normalizeTheme,
+    resolveThemeParams,
+    paramToCssVar,
+    serializeParamValue,
+    QUARTZ_LIGHT,
+    QUARTZ_DARK,
+    THEME_MODE_ATTR,
+} from "./theme.js";
+export {
     lucideIcon,
     iconChevronRight,
     iconChevronDown,

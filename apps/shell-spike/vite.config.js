@@ -17,6 +17,10 @@ export default defineConfig({
                 root,
                 "../../packages/datagrid/src/js/shell/index.js",
             ),
+            "@widgetstools/finosgrid/dist/css/finosgrid-shell.css": path.resolve(
+                root,
+                "../../packages/datagrid/dist/css/finosgrid-shell.css",
+            ),
         },
     },
     optimizeDeps: {
