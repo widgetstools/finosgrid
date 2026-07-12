@@ -24,7 +24,8 @@ function groupIsOpen(group, openState) {
     if (id && Object.prototype.hasOwnProperty.call(openState, id)) {
         return !!openState[id];
     }
-    return group.openByDefault !== false;
+    // AG ColGroupDef.openByDefault @default false
+    return group.openByDefault === true;
 }
 
 /**
@@ -32,7 +33,8 @@ function groupIsOpen(group, openState) {
  * @param {boolean} parentOpen
  */
 function childVisible(child, parentOpen) {
-    const show = child.columnGroupShow ?? "always";
+    // AG: omit columnGroupShow ⇒ always shown
+    const show = child.columnGroupShow;
     if (show === "open") return parentOpen;
     if (show === "closed") return !parentOpen;
     return true;

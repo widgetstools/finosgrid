@@ -3,7 +3,8 @@
 // ┗━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━┛
 
 import { computeHeaderLayout } from "./header_layout.js";
-import { applyHeaderStyle } from "./header_style.js";
+import { applyColDefHeaderChrome } from "./header_style.js";
+import { leafField } from "./column_tree.js";
 
 const DEFAULT_COL_WIDTH = 120;
 
@@ -13,15 +14,18 @@ const DEFAULT_COL_WIDTH = 120;
 
 /**
  * @param {object} options
- * @param {ReturnType<import('./column_tree.js').createColumnTree>} options.columnTree
+ * @param {ReturnType<import('./column_tree.js').createColumnTree>} [options.columnTree]
+ * @param {() => ReturnType<import('./column_tree.js').createColumnTree>} [options.getColumnTree]
  * @param {(leaf: ColDef) => void} [options.onFilterInput]
  * @param {() => void} [options.onLayoutChange]
  */
 export function createHeaderStack({
     columnTree,
+    getColumnTree,
     onFilterInput,
     onLayoutChange,
 }) {
+    const tree = () => getColumnTree?.() ?? columnTree;
     const root = document.createElement("div");
     root.className = "fg-shell__header";
     root.setAttribute("part", "shell-header");
@@ -90,8 +94,8 @@ export function createHeaderStack({
 
     function rebuildGroupWidths() {
         const { groupRows, leaves } = computeHeaderLayout(
-            columnTree.getDefs(),
-            columnTree.getOpenState(),
+            tree().getDefs(),
+            tree().getOpenState(),
         );
         const rowEls = [...groupsEl.querySelectorAll(".fg-shell__group-row")];
         groupRows.forEach((segs, rowIndex) => {
@@ -107,7 +111,7 @@ export function createHeaderStack({
                 let w = 0;
                 for (let k = 0; k < seg.span; k++) {
                     const leaf = leaves[leafIndex + k];
-                    w += leafWidth(leaf?.field);
+                    w += leafWidth(leafField(leaf));
                 }
                 leafIndex += seg.span;
                 cell.style.flex = `0 0 ${w}px`;
@@ -118,8 +122,8 @@ export function createHeaderStack({
 
     function render() {
         const { leaves, groupRows } = computeHeaderLayout(
-            columnTree.getDefs(),
-            columnTree.getOpenState(),
+            tree().getDefs(),
+            tree().getOpenState(),
         );
 
         groupsEl.replaceChildren();
@@ -133,7 +137,7 @@ export function createHeaderStack({
                 const cell = document.createElement("div");
                 let w = 0;
                 for (let k = 0; k < seg.span; k++) {
-                    w += leafWidth(leaves[leafIndex + k]?.field);
+                    w += leafWidth(leafField(leaves[leafIndex + k]));
                 }
                 leafIndex += seg.span;
                 cell.style.flex = `0 0 ${w}px`;
@@ -144,7 +148,7 @@ export function createHeaderStack({
                     const btn = document.createElement("button");
                     btn.type = "button";
                     btn.className = "fg-shell__group-toggle";
-                    const open = columnTree.isOpen(seg.group.groupId);
+                    const open = tree().isOpen(seg.group.groupId);
                     btn.textContent = open ? "▼" : "▶";
                     btn.title = open ? "Collapse" : "Expand";
                     btn.setAttribute(
@@ -153,7 +157,7 @@ export function createHeaderStack({
                     );
                     btn.addEventListener("click", (e) => {
                         e.stopPropagation();
-                        columnTree.toggleOpen(seg.group.groupId);
+                        tree().toggleOpen(seg.group.groupId);
                         render();
                         onLayoutChange?.();
                     });
@@ -161,7 +165,7 @@ export function createHeaderStack({
                     label.className = "fg-shell__group-label";
                     label.textContent = seg.group.headerName || "";
                     cell.append(btn, label);
-                    applyHeaderStyle(cell, seg.group.headerStyle);
+                    applyColDefHeaderChrome(cell, seg.group);
                 } else {
                     cell.className = "fg-shell__group-pad";
                 }
@@ -177,20 +181,21 @@ export function createHeaderStack({
         filterCells.clear();
 
         for (const leaf of leaves) {
-            const w = leafWidth(leaf.field);
+            const field = leafField(leaf);
+            const w = leafWidth(field);
             const h = document.createElement("div");
             h.className = "fg-shell__leaf-cell";
-            h.dataset.field = leaf.field;
-            h.textContent = leaf.headerName || leaf.field;
+            h.dataset.field = field;
+            h.textContent = leaf.headerName || field;
             h.style.flex = `0 0 ${w}px`;
             h.style.width = `${w}px`;
-            applyHeaderStyle(h, leaf.headerStyle);
+            applyColDefHeaderChrome(h, leaf);
             leafTrack.appendChild(h);
-            leafCells.set(leaf.field, h);
+            leafCells.set(field, h);
 
             const f = document.createElement("div");
             f.className = "fg-shell__filter-cell";
-            f.dataset.field = leaf.field;
+            f.dataset.field = field;
             f.style.flex = `0 0 ${w}px`;
             f.style.width = `${w}px`;
             const input = document.createElement("input");
@@ -199,14 +204,14 @@ export function createHeaderStack({
             input.placeholder = "Filter…";
             input.setAttribute(
                 "aria-label",
-                `Filter ${leaf.headerName || leaf.field}`,
+                `Filter ${leaf.headerName || field}`,
             );
             input.addEventListener("input", () => {
                 onFilterInput?.(leaf, input.value);
             });
             f.appendChild(input);
             filterTrack.appendChild(f);
-            filterCells.set(leaf.field, f);
+            filterCells.set(field, f);
         }
     }
 
@@ -219,8 +224,8 @@ export function createHeaderStack({
         setColumnWidths,
         getLeafFields: () =>
             computeHeaderLayout(
-                columnTree.getDefs(),
-                columnTree.getOpenState(),
-            ).leaves.map((l) => l.field),
+                tree().getDefs(),
+                tree().getOpenState(),
+            ).leaves.map((l) => leafField(l)),
     };
 }

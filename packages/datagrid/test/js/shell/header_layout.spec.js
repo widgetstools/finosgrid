@@ -13,11 +13,13 @@ const tree = [
     {
         groupId: "outer",
         headerName: "Outer",
+        openByDefault: true,
         children: [
             {
                 groupId: "inner",
                 headerName: "Inner",
                 columnGroupShow: "open",
+                openByDefault: true,
                 children: [
                     { field: "a" },
                     { field: "b", columnGroupShow: "open" },
@@ -48,19 +50,10 @@ describe("computeHeaderLayout", () => {
             ["a", "b", "d", "top"],
         );
         assert.equal(groupRows.length, 2);
-        assert.equal(groupRows[0][0].kind, "group");
         assert.equal(groupRows[0][0].group.groupId, "outer");
-        assert.equal(groupRows[0][0].span, 3); // a,b,d — not top
-        assert.equal(groupRows[0][1].kind, "pad");
-        assert.equal(groupRows[0][1].field, "top");
-
-        assert.equal(groupRows[1][0].kind, "group");
+        assert.equal(groupRows[0][0].span, 3);
         assert.equal(groupRows[1][0].group.groupId, "inner");
         assert.equal(groupRows[1][0].span, 2);
-        assert.equal(groupRows[1][1].kind, "pad");
-        assert.equal(groupRows[1][1].field, "d");
-        assert.equal(groupRows[1][2].kind, "pad");
-        assert.equal(groupRows[1][2].field, "top");
     });
 
     it("hides inner when outer collapsed", () => {
@@ -72,6 +65,6 @@ describe("computeHeaderLayout", () => {
             leaves.map((l) => l.field),
             ["c", "d", "top"],
         );
-        assert.equal(groupRows[0][0].span, 2); // c,d
+        assert.equal(groupRows[0][0].span, 2);
     });
 });

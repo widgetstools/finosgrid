@@ -1,5 +1,5 @@
 import perspective from "@finos/perspective";
-import { createShell } from "@widgetstools/finosgrid/shell";
+import { createGrid } from "@widgetstools/finosgrid/shell";
 import shellCssUrl from "@widgetstools/finosgrid/dist/css/finosgrid-shell.css?url";
 import "regular-table/dist/css/material.css";
 
@@ -39,15 +39,19 @@ const table = await worker.table(rows);
 /** @type {any} */
 let view = null;
 
+/**
+ * AG Grid–shaped columnDefs (ColDef | ColGroupDef).
+ * headerStyle is AG flat CSS; columnGroupShow is 'open' | 'closed' only;
+ * openByDefault defaults to false in AG — set true where groups start open.
+ */
 const columnDefs = [
     {
         groupId: "geography",
         headerName: "Geography",
+        openByDefault: true,
         headerStyle: {
             backgroundColor: "#e3eef8",
-            border: {
-                bottom: { width: 2, color: "#2196f3", style: "solid" },
-            },
+            borderBottom: "2px solid #2196f3",
         },
         children: [
             {
@@ -66,9 +70,7 @@ const columnDefs = [
                 columnGroupShow: "closed",
                 headerStyle: {
                     color: "#8b1e1e",
-                    border: {
-                        left: { width: 2, color: "#c62828", style: "solid" },
-                    },
+                    borderLeft: "2px solid #c62828",
                 },
             },
         ],
@@ -76,6 +78,7 @@ const columnDefs = [
     {
         groupId: "product",
         headerName: "Product",
+        openByDefault: true,
         children: [
             {
                 groupId: "product-detail",
@@ -105,11 +108,10 @@ const columnDefs = [
     {
         groupId: "metrics",
         headerName: "Metrics",
+        openByDefault: true,
         headerStyle: {
             backgroundColor: "#e8f5e9",
-            border: {
-                top: { width: 1, color: "#2e7d32", style: "dashed" },
-            },
+            borderTop: "1px dashed #2e7d32",
         },
         children: [
             { field: "Sales", headerName: "Sales" },
@@ -127,18 +129,22 @@ const columnDefs = [
     },
 ];
 
-async function loadColumns(fields) {
-    if (view) {
-        await view.delete();
-    }
-    view = await table.view({ columns: fields });
-    return await view.to_columns();
-}
-
-const shell = createShell({
-    container: document.getElementById("grid"),
+/** @type {import('@widgetstools/finosgrid/shell').GridApi} */
+const gridApi = createGrid(document.getElementById("grid"), {
     columnDefs,
-    loadColumns,
+    defaultColDef: {
+        floatingFilter: true,
+    },
+    floatingFilter: true,
+    async loadColumns(fields) {
+        if (view) await view.delete();
+        view = await table.view({ columns: fields });
+        return await view.to_columns();
+    },
+    onGridReady(e) {
+        console.info("[shell-spike] gridReady", e.api.getColumnGroupState());
+    },
 });
 
-await shell.refresh();
+// Expose for console debugging (AG-style)
+window.gridApi = gridApi;

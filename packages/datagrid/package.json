@@ -13,7 +13,10 @@
       "types": "./index.d.ts",
       "default": "./dist/esm/finosgrid.js"
     },
-    "./shell": "./src/js/shell/index.js",
+    "./shell": {
+      "types": "./src/js/shell/index.d.ts",
+      "default": "./src/js/shell/index.js"
+    },
     "./dist/*": "./dist/*",
     "./package.json": "./package.json"
   },

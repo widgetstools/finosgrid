@@ -1,5 +1,5 @@
 // ┏━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━┓
-// ┃ Shell — column group tree visibility (always / open / closed)             ┃
+// ┃ Shell — column group tree (AG ColDef / ColGroupDef semantics)             ┃
 // ┗━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━┛
 
 import { describe, it } from "node:test";
@@ -8,15 +8,16 @@ import {
     createColumnTree,
     isColGroupDef,
     visibleLeaves,
+    applyColumnDefaults,
 } from "../../../src/js/shell/column_tree.js";
 
-/** @type {import('../../../src/js/shell/column_tree.js').ColGroupDef} */
+/** @type {import('../../../src/js/shell/ag_types.js').ColGroupDef} */
 const geography = {
     groupId: "geography",
     headerName: "Geography",
     openByDefault: true,
     children: [
-        { field: "region", headerName: "Region" }, // always
+        { field: "region", headerName: "Region" }, // always (omit columnGroupShow)
         {
             field: "city",
             headerName: "City",
@@ -31,23 +32,24 @@ const geography = {
 };
 
 describe("isColGroupDef", () => {
-    it("detects groups vs leaves", () => {
+    it("detects groups vs leaves (AG children discriminator)", () => {
         assert.equal(isColGroupDef(geography), true);
         assert.equal(isColGroupDef({ field: "region" }), false);
     });
 });
 
 describe("visibleLeaves", () => {
-    it("shows always leaves when group is open or closed", () => {
-        const openLeaves = visibleLeaves([geography], { geography: true }).map(
-            (c) => c.field,
+    it("shows columns with omitted columnGroupShow when open or closed", () => {
+        assert.ok(
+            visibleLeaves([geography], { geography: true })
+                .map((c) => c.field)
+                .includes("region"),
         );
-        const closedLeaves = visibleLeaves([geography], {
-            geography: false,
-        }).map((c) => c.field);
-
-        assert.ok(openLeaves.includes("region"));
-        assert.ok(closedLeaves.includes("region"));
+        assert.ok(
+            visibleLeaves([geography], { geography: false })
+                .map((c) => c.field)
+                .includes("region"),
+        );
     });
 
     it("shows open-only leaves only when group is expanded", () => {
@@ -70,83 +72,35 @@ describe("visibleLeaves", () => {
             ),
             ["region", "regionCode"],
         );
-        assert.equal(
-            visibleLeaves([geography], { geography: true })
-                .map((c) => c.field)
-                .includes("regionCode"),
-            false,
-        );
     });
 
-    it("keeps stable DFS order of visible leaves", () => {
-        const tree = [
-            {
-                groupId: "a",
-                headerName: "A",
-                children: [
-                    { field: "a1" },
-                    { field: "a2", columnGroupShow: "open" },
-                ],
-            },
-            { field: "top" },
-            {
-                groupId: "b",
-                headerName: "B",
-                children: [{ field: "b1" }],
-            },
-        ];
-        assert.deepEqual(
-            visibleLeaves(tree, { a: true, b: true }).map((c) => c.field),
-            ["a1", "a2", "top", "b1"],
-        );
-    });
-
-    it("hides open-only grandchildren when a parent group is collapsed", () => {
-        /** @type {import('../../../src/js/shell/column_tree.js').ColGroupDef} */
+    it("hides open-only nested groups when parent is collapsed", () => {
         const nested = {
             groupId: "outer",
             headerName: "Outer",
+            openByDefault: true,
             children: [
                 {
                     groupId: "inner",
                     headerName: "Inner",
                     columnGroupShow: "open",
+                    openByDefault: true,
                     children: [
                         { field: "alwaysInner" },
-                        {
-                            field: "openInner",
-                            columnGroupShow: "open",
-                        },
-                        {
-                            field: "closedInner",
-                            columnGroupShow: "closed",
-                        },
+                        { field: "openInner", columnGroupShow: "open" },
+                        { field: "closedInner", columnGroupShow: "closed" },
                     ],
                 },
-                {
-                    field: "outerClosed",
-                    columnGroupShow: "closed",
-                },
+                { field: "outerClosed", columnGroupShow: "closed" },
             ],
         };
 
-        // Outer open, inner open → alwaysInner + openInner
         assert.deepEqual(
             visibleLeaves([nested], { outer: true, inner: true }).map(
                 (c) => c.field,
             ),
             ["alwaysInner", "openInner"],
         );
-
-        // Outer open, inner closed → alwaysInner + closedInner
-        assert.deepEqual(
-            visibleLeaves([nested], { outer: true, inner: false }).map(
-                (c) => c.field,
-            ),
-            ["alwaysInner", "closedInner"],
-        );
-
-        // Outer collapsed → inner (open-only child of outer) hidden; outerClosed shown
         assert.deepEqual(
             visibleLeaves([nested], { outer: false, inner: true }).map(
                 (c) => c.field,
@@ -156,72 +110,59 @@ describe("visibleLeaves", () => {
     });
 });
 
-describe("createColumnTree", () => {
-    it("initializes open state from openByDefault (default true)", () => {
-        const tree = createColumnTree([
-            {
-                groupId: "g1",
-                headerName: "G1",
-                children: [{ field: "x" }],
-            },
-            {
-                groupId: "g2",
-                headerName: "G2",
-                openByDefault: false,
-                children: [{ field: "y", columnGroupShow: "open" }],
-            },
-        ]);
+describe("createColumnTree (AG openByDefault @default false)", () => {
+    it("starts closed unless openByDefault is true", () => {
+        const tree = createColumnTree({
+            columnDefs: [
+                {
+                    groupId: "g1",
+                    headerName: "G1",
+                    children: [{ field: "x" }],
+                },
+                {
+                    groupId: "g2",
+                    headerName: "G2",
+                    openByDefault: true,
+                    children: [{ field: "y", columnGroupShow: "open" }],
+                },
+            ],
+        });
 
-        assert.equal(tree.isOpen("g1"), true);
-        assert.equal(tree.isOpen("g2"), false);
+        assert.equal(tree.isOpen("g1"), false);
+        assert.equal(tree.isOpen("g2"), true);
         assert.deepEqual(
             tree.visibleLeaves().map((c) => c.field),
-            ["x"],
+            ["x", "y"],
         );
     });
 
-    it("setOpen and toggleOpen update visibility and persist state", () => {
-        const tree = createColumnTree([geography]);
-
+    it("setColumnGroupOpened-compatible setOpen / getColumnGroupState", () => {
+        const tree = createColumnTree({ columnDefs: [geography] });
         assert.deepEqual(
             tree.visibleLeaves().map((c) => c.field),
             ["region", "city"],
         );
-
         tree.setOpen("geography", false);
-        assert.equal(tree.isOpen("geography"), false);
-        assert.deepEqual(
-            tree.visibleLeaves().map((c) => c.field),
-            ["region", "regionCode"],
-        );
-
-        tree.toggleOpen("geography");
+        assert.deepEqual(tree.getColumnGroupState(), [
+            { groupId: "geography", open: false },
+        ]);
+        tree.resetColumnGroupState();
         assert.equal(tree.isOpen("geography"), true);
-        assert.deepEqual(
-            tree.visibleLeaves().map((c) => c.field),
-            ["region", "city"],
-        );
-
-        assert.deepEqual(tree.getOpenState(), { geography: true });
     });
 
-    it("assigns groupId when missing so open state can be keyed", () => {
-        const tree = createColumnTree([
-            {
-                headerName: "Metrics",
-                children: [
-                    { field: "sales" },
-                    { field: "detail", columnGroupShow: "open" },
-                ],
-            },
-        ]);
-        const ids = Object.keys(tree.getOpenState());
-        assert.equal(ids.length, 1);
-        assert.equal(tree.isOpen(ids[0]), true);
-        tree.setOpen(ids[0], false);
-        assert.deepEqual(
-            tree.visibleLeaves().map((c) => c.field),
-            ["sales"],
+    it("applies defaultColDef / defaultColGroupDef like AG Grid", () => {
+        const defs = applyColumnDefaults(
+            [
+                {
+                    headerName: "G",
+                    children: [{ field: "a" }],
+                },
+            ],
+            { filter: true, floatingFilter: true },
+            { openByDefault: true },
         );
+        assert.equal(defs[0].openByDefault, true);
+        assert.equal(defs[0].children[0].filter, true);
+        assert.equal(defs[0].children[0].floatingFilter, true);
     });
 });

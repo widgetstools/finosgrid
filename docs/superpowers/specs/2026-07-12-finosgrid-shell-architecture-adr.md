@@ -26,14 +26,51 @@ Split finosgrid into three layers:
 |---|---|---|
 | **Engine** | Filter, sort, group, pivot, expressions | `@finos/perspective` View + `viewer.restore` |
 | **Body viewport** | Virtualized cell paint only | `<regular-table>` / HTML `<table>`, **no** product column headers |
-| **Shell** | Column groups, leaf headers, floating filters, tool panels, header styling | First-class finosgrid DOM we own (header region may use `<table>` or div rows; body stays table) |
+| **Shell** | Column groups, leaf headers, floating filters, tool panels, header styling | First-class finosgrid DOM; **AG Grid object model** |
+
+### AG Grid object model (locked)
+
+Public column/grid shapes match **ag-grid-community v35+**:
+
+| AG type | finosgrid |
+|---|---|
+| `ColDef` / `ColGroupDef` / `AbstractColDef` | `@widgetstools/finosgrid/shell` |
+| `columnGroupShow?: 'open' \| 'closed'` | same (omit ⇒ always visible) |
+| `openByDefault?: boolean` | same (**default `false`**) |
+| `headerStyle` | flat CSS map (e.g. `borderBottom: '2px solid #ccc'`) |
+| `headerClass` | string \| string[] \| function |
+| `GridOptions.columnDefs` / `defaultColDef` / `defaultColGroupDef` / `rowData` | `createGrid(el, gridOptions)` |
+| `GridApi.setColumnGroupOpened` / `getColumnGroupState` / `setColumnGroupState` / `resetColumnGroupState` / `setGridOption` | implemented subset |
+
+Unimplemented AG properties may be present on defs and are preserved; they are no-ops until wired.
+
+```js
+import { createGrid } from "@widgetstools/finosgrid/shell";
+
+const api = createGrid(document.querySelector("#grid"), {
+  columnDefs: [
+    {
+      headerName: "Medal Details",
+      openByDefault: true,
+      children: [
+        { field: "bronze", columnGroupShow: "open" },
+        { field: "total", columnGroupShow: "closed" },
+      ],
+    },
+  ],
+  defaultColDef: { floatingFilter: true },
+  rowData,
+});
+
+api.setColumnGroupOpened("medal-details", false);
+```
 
 ### Locked choices
 
 1. **Body paint surface:** HTML `<table>` via regular-table virtualization (keep Perspective as `dataListener`).
 2. **Do not use** regular-table `column_headers` for product chrome (group tree, floating filters, open/closed columns). RT may receive empty/minimal headers; shell owns the visible header stack.
-3. **Column groups:** nested, collapsible; leaf columns declare visibility relative to ancestor expand state.
-4. **Header styling:** per leaf header and per group header, including font, colors, and **per-side** borders.
+3. **Column groups:** nested, collapsible; leaf columns use AG `columnGroupShow`.
+4. **Header styling:** AG `headerStyle` / `headerClass` on leaf and group headers (per-side borders via standard CSS keys).
 
 ### Non-negotiables (unchanged)
 
@@ -45,44 +82,24 @@ Split finosgrid into three layers:
 ## Column group model
 
 ```ts
-type ColumnGroupShow = "always" | "open" | "closed";
+type ColumnGroupShowType = "open" | "closed"; // omit ⇒ always (AG Grid)
 
-type HeaderBorderSide = {
-  width?: number | string;   // e.g. 1, "2px"
-  color?: string;
-  style?: "none" | "solid" | "dashed" | "dotted" | "double";
-  visible?: boolean;         // false ⇒ no border on that side
-};
-
-type HeaderStyle = {
-  fontFamily?: string;
-  fontSize?: string | number;
-  fontWeight?: string | number;
-  fontStyle?: "normal" | "italic" | "oblique";
-  color?: string;            // foreground
-  backgroundColor?: string;
-  border?: {
-    top?: HeaderBorderSide;
-    right?: HeaderBorderSide;
-    bottom?: HeaderBorderSide;
-    left?: HeaderBorderSide;
-  };
-};
+type HeaderStyle = Record<string, string | number>; // AG flat CSS
 
 type ColDef = {
-  field: string;
+  field?: string;
+  colId?: string;
   headerName?: string;
-  /** Visibility vs owning group expand state (AG `columnGroupShow`). */
-  columnGroupShow?: ColumnGroupShow; // default "always"
+  columnGroupShow?: ColumnGroupShowType;
   headerStyle?: HeaderStyle;
-  // … filters, width, etc.
+  headerClass?: string | string[] | Function;
+  // … plus other AG ColDef props (stored; wired as implemented)
 };
 
 type ColGroupDef = {
   groupId?: string;
-  headerName: string;
-  /** Default true. Persisted in chrome save/restore. */
-  openByDefault?: boolean;
+  headerName?: string;
+  openByDefault?: boolean; // AG default false
   headerStyle?: HeaderStyle;
   children: Array<ColDef | ColGroupDef>;
 };
@@ -90,13 +107,13 @@ type ColGroupDef = {
 
 ### Visibility algorithm
 
-A leaf is **visible** iff for every ancestor group `G`:
+A child of group `G` is visible when:
 
-- if leaf’s rule relative to `G` is `always` → ok
-- if `open` → `G` must be expanded
-- if `closed` → `G` must be collapsed
+- `columnGroupShow` is omitted → always
+- `'open'` → `G` is expanded
+- `'closed'` → `G` is collapsed
 
-Nested groups: evaluate from root to leaf; collapsing a parent hides open-only descendants regardless of child group state (child open state is preserved for when the parent re-opens).
+Nested groups: evaluate against the **immediate** parent (AG semantics). Collapsing a parent hides `open`-only child groups entirely.
 
 Visible leaves (in tree order) become the column set for:
 

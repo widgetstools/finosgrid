@@ -1,39 +1,12 @@
 // ┏━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━┓
-// ┃ Shell — column group tree + always/open/closed leaf visibility            ┃
+// ┃ Shell — column group tree (AG Grid ColDef / ColGroupDef semantics)        ┃
 // ┗━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━┛
 
 /**
- * @typedef {'always' | 'open' | 'closed'} ColumnGroupShow
- *
- * @typedef {object} HeaderBorderSide
- * @property {number|string} [width]
- * @property {string} [color]
- * @property {'none'|'solid'|'dashed'|'dotted'|'double'} [style]
- * @property {boolean} [visible]
- *
- * @typedef {object} HeaderStyle
- * @property {string} [fontFamily]
- * @property {string|number} [fontSize]
- * @property {string|number} [fontWeight]
- * @property {'normal'|'italic'|'oblique'} [fontStyle]
- * @property {string} [color]
- * @property {string} [backgroundColor]
- * @property {{ top?: HeaderBorderSide, right?: HeaderBorderSide, bottom?: HeaderBorderSide, left?: HeaderBorderSide }} [border]
- *
- * @typedef {object} ColDef
- * @property {string} field
- * @property {string} [headerName]
- * @property {ColumnGroupShow} [columnGroupShow]
- * @property {HeaderStyle} [headerStyle]
- *
- * @typedef {object} ColGroupDef
- * @property {string} [groupId]
- * @property {string} headerName
- * @property {boolean} [openByDefault]
- * @property {ColumnGroupShow} [columnGroupShow]
- * @property {HeaderStyle} [headerStyle]
- * @property {Array<ColDef|ColGroupDef>} children
- *
+ * @typedef {import('./ag_types.js').ColDef} ColDef
+ * @typedef {import('./ag_types.js').ColGroupDef} ColGroupDef
+ * @typedef {import('./ag_types.js').ColumnGroupShowType} ColumnGroupShowType
+ * @typedef {import('./ag_types.js').ColumnGroupStateItem} ColumnGroupStateItem
  * @typedef {Record<string, boolean>} OpenState
  */
 
@@ -46,14 +19,44 @@ export function isColGroupDef(node) {
 }
 
 /**
+ * Merge AG `defaultColDef` / `defaultColGroupDef` into a def tree (shallow).
+ * Group nodes do not inherit leaf-only defaults; leaf nodes do not inherit
+ * group-only defaults (`children`, `openByDefault`, …).
+ *
+ * @param {Array<ColDef|ColGroupDef>} defs
+ * @param {ColDef} [defaultColDef]
+ * @param {Partial<ColGroupDef>} [defaultColGroupDef]
+ * @returns {Array<ColDef|ColGroupDef>}
+ */
+export function applyColumnDefaults(
+    defs,
+    defaultColDef = {},
+    defaultColGroupDef = {},
+) {
+    return (defs || []).map((node) => {
+        if (isColGroupDef(node)) {
+            const { children: _ignore, ...groupDefaults } = defaultColGroupDef;
+            return {
+                ...groupDefaults,
+                ...node,
+                children: applyColumnDefaults(
+                    node.children,
+                    defaultColDef,
+                    defaultColGroupDef,
+                ),
+            };
+        }
+        return { ...defaultColDef, ...node };
+    });
+}
+
+/**
  * @param {ColDef|ColGroupDef} child
  * @param {boolean} parentOpen
  */
 function childVisibleInParent(child, parentOpen) {
-    const show = child.columnGroupShow ?? "always";
-    if (show === "always") {
-        return true;
-    }
+    // AG: omit columnGroupShow ⇒ always shown
+    const show = child.columnGroupShow;
     if (show === "open") {
         return parentOpen;
     }
@@ -66,31 +69,37 @@ function childVisibleInParent(child, parentOpen) {
 /**
  * @param {ColGroupDef} group
  * @param {OpenState} openState
+ */
+function groupIsOpen(group, openState) {
+    const id = group.groupId;
+    if (id && Object.prototype.hasOwnProperty.call(openState, id)) {
+        return !!openState[id];
+    }
+    // AG ColGroupDef.openByDefault @default false
+    return group.openByDefault === true;
+}
+
+/**
+ * @param {ColGroupDef} group
+ * @param {OpenState} openState
  * @param {ColDef[]} out
  */
 function collectGroupLeaves(group, openState, out) {
-    const id = group.groupId;
-    const open =
-        id && Object.prototype.hasOwnProperty.call(openState, id)
-            ? !!openState[id]
-            : group.openByDefault !== false;
-
+    const open = groupIsOpen(group, openState);
     for (const child of group.children || []) {
         if (!childVisibleInParent(child, open)) {
             continue;
         }
         if (isColGroupDef(child)) {
             collectGroupLeaves(child, openState, out);
-        } else if (child?.field != null) {
+        } else if (child?.field != null || child?.colId != null) {
             out.push(child);
         }
     }
 }
 
 /**
- * DFS-ordered visible leaf columns for the current open/closed group state.
- * `columnGroupShow` is evaluated against each node's **immediate** parent group
- * (AG Grid semantics).
+ * DFS-ordered visible leaf columns (AG `columnGroupShow` vs immediate parent).
  *
  * @param {Array<ColDef|ColGroupDef>} defs
  * @param {OpenState} [openState]
@@ -102,7 +111,7 @@ export function visibleLeaves(defs, openState = {}) {
     for (const node of defs || []) {
         if (isColGroupDef(node)) {
             collectGroupLeaves(node, openState, out);
-        } else if (node?.field != null) {
+        } else if (node?.field != null || node?.colId != null) {
             out.push(node);
         }
     }
@@ -110,9 +119,16 @@ export function visibleLeaves(defs, openState = {}) {
 }
 
 /**
+ * @param {ColDef} leaf
+ * @returns {string}
+ */
+export function leafField(leaf) {
+    return leaf.field ?? leaf.colId ?? "";
+}
+
+/**
  * @param {Array<ColDef|ColGroupDef>} defs
  * @param {Map<string, number>} [counters]
- * @returns {Array<ColDef|ColGroupDef>}
  */
 function assignMissingGroupIds(defs, counters = new Map()) {
     return (defs || []).map((node) => {
@@ -150,38 +166,50 @@ function seedOpenState(defs, openState) {
         }
         const id = node.groupId;
         if (id && !Object.prototype.hasOwnProperty.call(openState, id)) {
-            openState[id] = node.openByDefault !== false;
+            openState[id] = node.openByDefault === true;
         }
         seedOpenState(node.children, openState);
     }
 }
 
 /**
- * Mutable column tree with expand/collapse state.
- *
- * @param {Array<ColDef|ColGroupDef>} defs
+ * @param {object} [options]
+ * @param {Array<ColDef|ColGroupDef>} options.columnDefs
+ * @param {ColDef} [options.defaultColDef]
+ * @param {Partial<ColGroupDef>} [options.defaultColGroupDef]
  */
-export function createColumnTree(defs) {
-    const root = assignMissingGroupIds(defs);
+export function createColumnTree({
+    columnDefs,
+    defaultColDef,
+    defaultColGroupDef,
+} = {}) {
+    const withDefaults = applyColumnDefaults(
+        columnDefs || [],
+        defaultColDef || {},
+        defaultColGroupDef || {},
+    );
+    const root = assignMissingGroupIds(withDefaults);
     /** @type {OpenState} */
     const openState = {};
     seedOpenState(root, openState);
 
+    /** @type {OpenState} */
+    const initialOpenState = { ...openState };
+
     return {
-        /** @returns {Array<ColDef|ColGroupDef>} */
         getDefs() {
             return root;
         },
 
         /**
          * @param {string} groupId
-         * @returns {boolean}
          */
         isOpen(groupId) {
             return !!openState[groupId];
         },
 
         /**
+         * AG GridApi.setColumnGroupOpened
          * @param {string} groupId
          * @param {boolean} open
          */
@@ -194,7 +222,6 @@ export function createColumnTree(defs) {
 
         /**
          * @param {string} groupId
-         * @returns {boolean} new open state
          */
         toggleOpen(groupId) {
             if (!Object.prototype.hasOwnProperty.call(openState, groupId)) {
@@ -207,6 +234,42 @@ export function createColumnTree(defs) {
         /** @returns {OpenState} */
         getOpenState() {
             return { ...openState };
+        },
+
+        /**
+         * AG GridApi.getColumnGroupState
+         * @returns {ColumnGroupStateItem[]}
+         */
+        getColumnGroupState() {
+            return Object.keys(openState).map((groupId) => ({
+                groupId,
+                open: !!openState[groupId],
+            }));
+        },
+
+        /**
+         * AG GridApi.setColumnGroupState
+         * @param {ColumnGroupStateItem[]} stateItems
+         */
+        setColumnGroupState(stateItems) {
+            for (const item of stateItems || []) {
+                if (
+                    item?.groupId &&
+                    Object.prototype.hasOwnProperty.call(
+                        openState,
+                        item.groupId,
+                    )
+                ) {
+                    openState[item.groupId] = !!item.open;
+                }
+            }
+        },
+
+        /** AG GridApi.resetColumnGroupState */
+        resetColumnGroupState() {
+            for (const id of Object.keys(openState)) {
+                openState[id] = !!initialOpenState[id];
+            }
         },
 
         /**

@@ -1,112 +1,92 @@
 // ┏━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━┓
-// ┃ Shell — apply HeaderStyle (font, colors, per-side borders) to cells       ┃
+// ┃ Shell — AG Grid HeaderStyle / HeaderClass application                     ┃
 // ┗━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━┛
 
 /**
- * @typedef {import('./column_tree.js').HeaderStyle} HeaderStyle
- * @typedef {import('./column_tree.js').HeaderBorderSide} HeaderBorderSide
+ * @typedef {import('./ag_types.js').HeaderStyle} HeaderStyle
+ * @typedef {import('./ag_types.js').HeaderClass} HeaderClass
+ * @typedef {import('./ag_types.js').AbstractColDef} AbstractColDef
  */
 
 /**
- * @param {string|number|undefined} value
- * @param {string} [unit]
- * @returns {string|undefined}
- */
-function cssSize(value, unit = "px") {
-    if (value === undefined || value === null || value === "") {
-        return undefined;
-    }
-    if (typeof value === "number") {
-        return `${value}${unit}`;
-    }
-    return String(value);
-}
-
-/**
- * @param {HeaderBorderSide|undefined} side
- * @param {'Top'|'Right'|'Bottom'|'Left'} edge
- * @param {Record<string, string>} out
- */
-function applyBorderSide(side, edge, out) {
-    if (!side) {
-        return;
-    }
-    if (side.visible === false) {
-        out[`border${edge}Style`] = "none";
-        out[`border${edge}Width`] = "0px";
-        if (side.color !== undefined) {
-            out[`border${edge}Color`] = String(side.color);
-        }
-        return;
-    }
-    if (side.width !== undefined) {
-        out[`border${edge}Width`] = cssSize(side.width);
-    }
-    if (side.color !== undefined) {
-        out[`border${edge}Color`] = String(side.color);
-    }
-    if (side.style !== undefined) {
-        out[`border${edge}Style`] = side.style;
-    }
-}
-
-/**
- * Resolve a HeaderStyle into camelCase CSS property → value pairs
- * suitable for `el.style` or Object.assign.
+ * Resolve AG `headerStyle` (object or function) to a flat CSS property map.
+ * Numbers are left as-is for assignment onto `el.style` (browser coerces).
  *
- * @param {HeaderStyle|null|undefined} style
- * @returns {Record<string, string>}
+ * @param {HeaderStyle|function|null|undefined} style
+ * @param {object} [params]
+ * @returns {HeaderStyle}
  */
-export function headerStyleToCss(style) {
-    /** @type {Record<string, string>} */
-    const out = {};
+export function headerStyleToCss(style, params = {}) {
     if (!style) {
-        return out;
+        return {};
     }
-
-    if (style.fontFamily !== undefined) {
-        out.fontFamily = String(style.fontFamily);
+    if (typeof style === "function") {
+        const resolved = style({
+            floatingFilter: false,
+            colDef: params.colDef,
+            column: params.column ?? null,
+            columnGroup: params.columnGroup ?? null,
+            ...params,
+        });
+        return resolved && typeof resolved === "object" ? { ...resolved } : {};
     }
-    const fontSize = cssSize(style.fontSize);
-    if (fontSize !== undefined) {
-        out.fontSize = fontSize;
-    }
-    if (style.fontWeight !== undefined) {
-        out.fontWeight = String(style.fontWeight);
-    }
-    if (style.fontStyle !== undefined) {
-        out.fontStyle = style.fontStyle;
-    }
-    if (style.color !== undefined) {
-        out.color = String(style.color);
-    }
-    if (style.backgroundColor !== undefined) {
-        out.backgroundColor = String(style.backgroundColor);
-    }
-
-    const border = style.border;
-    if (border) {
-        applyBorderSide(border.top, "Top", out);
-        applyBorderSide(border.right, "Right", out);
-        applyBorderSide(border.bottom, "Bottom", out);
-        applyBorderSide(border.left, "Left", out);
-    }
-
-    return out;
+    return { ...style };
 }
 
 /**
- * Apply HeaderStyle onto an element's inline style.
+ * Apply AG Grid `headerStyle` onto an element.
  *
- * @param {{ style: Record<string, string>|CSSStyleDeclaration }|null|undefined} el
- * @param {HeaderStyle|null|undefined} style
+ * @param {{ style: CSSStyleDeclaration|Record<string, string|number>, classList?: DOMTokenList }|null|undefined} el
+ * @param {HeaderStyle|function|null|undefined} style
+ * @param {object} [params]
  */
-export function applyHeaderStyle(el, style) {
+export function applyHeaderStyle(el, style, params) {
     if (!el?.style || !style) {
         return;
     }
-    const css = headerStyleToCss(style);
+    const css = headerStyleToCss(style, params);
     for (const [key, value] of Object.entries(css)) {
+        if (value === undefined || value === null) continue;
         el.style[key] = value;
     }
+}
+
+/**
+ * Apply AG Grid `headerClass` (string | string[] | function).
+ *
+ * @param {{ classList: DOMTokenList }|null|undefined} el
+ * @param {HeaderClass|function|null|undefined} headerClass
+ * @param {object} [params]
+ */
+export function applyHeaderClass(el, headerClass, params = {}) {
+    if (!el?.classList || !headerClass) {
+        return;
+    }
+    let value = headerClass;
+    if (typeof headerClass === "function") {
+        value = headerClass({
+            floatingFilter: false,
+            colDef: params.colDef,
+            column: params.column ?? null,
+            columnGroup: params.columnGroup ?? null,
+            ...params,
+        });
+    }
+    if (!value) return;
+    const list = Array.isArray(value) ? value : String(value).split(/\s+/);
+    for (const cls of list) {
+        if (cls) el.classList.add(cls);
+    }
+}
+
+/**
+ * @param {*} el
+ * @param {AbstractColDef} [colDef]
+ * @param {object} [params]
+ */
+export function applyColDefHeaderChrome(el, colDef, params = {}) {
+    if (!el || !colDef) return;
+    const p = { ...params, colDef };
+    applyHeaderStyle(el, colDef.headerStyle, p);
+    applyHeaderClass(el, colDef.headerClass, p);
 }
