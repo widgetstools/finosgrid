@@ -211,6 +211,24 @@ export class HTMLPerspectiveViewerDatagridPluginElement extends HTMLElement {
             ?.setRules?.(column, rules);
     }
 
+    openPivotPanel() {
+        this._chrome?.getFeature?.("pivotChrome")?.open?.();
+    }
+
+    openCalculatedColumnPanel() {
+        this._chrome?.getFeature?.("calculatedColumns")?.open?.();
+    }
+
+    /**
+     * @param {string} name
+     * @param {string} expression
+     */
+    async addCalculatedColumn(name, expression) {
+        return this._chrome
+            ?.getFeature?.("calculatedColumns")
+            ?.addExpression?.(name, expression);
+    }
+
     async restyle(view) {
         await this.draw(view);
     }

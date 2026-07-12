@@ -1,0 +1,192 @@
+/* Phase 3 chrome toolbar + panels + hide Perspective plugin toolbar */
+
+.psp-ag-chrome--polished {
+    --ag-chrome-toolbar-h: 32px;
+}
+
+.psp-ag-chrome__toolbar {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    flex: 0 0 auto;
+    height: var(--ag-chrome-toolbar-h, 32px);
+    padding: 0 8px;
+    background: var(--ag-chrome-header-bg, #f5f7f7);
+    border-bottom: 1px solid var(--ag-chrome-border, #dde2e6);
+    box-sizing: border-box;
+}
+
+.psp-ag-chrome__toolbar-btn {
+    height: 24px;
+    padding: 0 10px;
+    border: 1px solid var(--ag-chrome-input-border, #bac0c6);
+    border-radius: 2px;
+    background: var(--ag-chrome-input-bg, #fff);
+    color: var(--ag-chrome-header-fg, #181d1f);
+    font-size: 12px;
+    cursor: pointer;
+}
+
+.psp-ag-chrome__toolbar-btn:hover {
+    border-color: var(--ag-chrome-accent, #2196f3);
+    color: var(--ag-chrome-accent, #2196f3);
+}
+
+.psp-ag-chrome__panel-host {
+    display: none;
+    position: absolute;
+    top: var(--ag-chrome-toolbar-h, 32px);
+    right: 8px;
+    z-index: 40;
+    pointer-events: none;
+}
+
+.psp-ag-chrome__panel-host--open {
+    display: block;
+    pointer-events: auto;
+}
+
+.psp-ag-chrome-panel {
+    width: 320px;
+    max-height: min(480px, 70vh);
+    display: flex;
+    flex-direction: column;
+    background: var(--ag-chrome-popup-bg, #fff);
+    border: 1px solid var(--ag-chrome-border, #dde2e6);
+    border-radius: 2px;
+    box-shadow: var(--ag-chrome-popup-shadow, 0 2px 8px rgba(0, 0, 0, 0.18));
+    color: var(--ag-chrome-header-fg, #181d1f);
+    font-size: 12px;
+    overflow: hidden;
+}
+
+.psp-ag-chrome-panel__header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 8px 10px;
+    border-bottom: 1px solid var(--ag-chrome-border, #dde2e6);
+    background: var(--ag-chrome-header-bg, #f5f7f7);
+}
+
+.psp-ag-chrome-panel__close {
+    border: none;
+    background: transparent;
+    font-size: 16px;
+    cursor: pointer;
+    line-height: 1;
+    color: var(--ag-chrome-icon, #51575d);
+}
+
+.psp-ag-chrome-panel__body {
+    padding: 8px 10px;
+    overflow: auto;
+    flex: 1;
+}
+
+.psp-ag-chrome-panel__body h4 {
+    margin: 8px 0 4px;
+    font-size: 11px;
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+    color: var(--ag-chrome-icon, #51575d);
+}
+
+.psp-ag-chrome-panel__body section:first-child h4 {
+    margin-top: 0;
+}
+
+.psp-ag-chrome-panel__footer {
+    display: flex;
+    justify-content: flex-end;
+    gap: 6px;
+    padding: 8px 10px;
+    border-top: 1px solid var(--ag-chrome-border, #dde2e6);
+}
+
+.psp-ag-chrome-panel__footer button {
+    height: 26px;
+    padding: 0 12px;
+    border-radius: 2px;
+    border: 1px solid var(--ag-chrome-input-border, #bac0c6);
+    background: var(--ag-chrome-input-bg, #fff);
+    cursor: pointer;
+    font-size: 12px;
+}
+
+.psp-ag-chrome-panel__primary {
+    background: var(--ag-chrome-accent, #2196f3) !important;
+    border-color: var(--ag-chrome-accent, #2196f3) !important;
+    color: #fff !important;
+}
+
+.psp-ag-pivot-panel__cols {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+    max-height: 120px;
+    overflow: auto;
+    border: 1px solid var(--ag-chrome-border, #dde2e6);
+    padding: 4px;
+    border-radius: 2px;
+}
+
+.psp-ag-pivot-panel__cols label {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    cursor: pointer;
+}
+
+.psp-ag-pivot-panel__value-row {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+}
+
+.psp-ag-pivot-panel__value-row select {
+    margin-left: auto;
+    height: 22px;
+    font-size: 11px;
+}
+
+.psp-ag-calc-panel__field {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+    margin-bottom: 8px;
+}
+
+.psp-ag-calc-panel__field input {
+    height: 26px;
+    padding: 0 8px;
+    border: 1px solid var(--ag-chrome-input-border, #bac0c6);
+    border-radius: 2px;
+}
+
+.psp-ag-calc-panel__hint {
+    margin: 0 0 8px;
+    color: var(--ag-chrome-icon, #51575d);
+    font-size: 11px;
+}
+
+.psp-ag-calc-panel__item {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    padding: 4px 0;
+    border-bottom: 1px solid var(--ag-chrome-border, #dde2e6);
+    flex-wrap: wrap;
+}
+
+.psp-ag-calc-panel__item button {
+    margin-left: auto;
+    height: 22px;
+    font-size: 11px;
+}
+
+/* Hide Perspective's plugin toolbar when finosgrid chrome is active */
+perspective-viewer-datagrid-toolbar.psp-ag-chrome-hide-psp-toolbar,
+.psp-ag-chrome-hide-psp-toolbar {
+    display: none !important;
+}

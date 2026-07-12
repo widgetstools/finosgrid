@@ -9,6 +9,8 @@ Uses Perspective’s compute engine and viewport rendering unchanged. This proje
 - Conditional formatting
 - Column groups
 - Sticky group rows
+- Pivot chrome (group_by / split_by / aggregates)
+- Calculated columns (Perspective expressions)
 
 ## Packages
 

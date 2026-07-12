@@ -49,4 +49,8 @@ export declare class HTMLPerspectiveViewerDatagridPluginElement
             bg?: string;
         }>,
     ): void;
+
+    openPivotPanel(): void;
+    openCalculatedColumnPanel(): void;
+    addCalculatedColumn(name: string, expression: string): Promise<void>;
 }

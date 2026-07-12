@@ -72,14 +72,3 @@ document.getElementById("btn-rules").onclick = () => {
         { op: "<", value: 50, fg: "#8b1e1e", bg: "#fde2e1" },
     ]);
 };
-
-let pivoted = false;
-document.getElementById("btn-pivot").onclick = async () => {
-    pivoted = !pivoted;
-    await viewer.restore({
-        group_by: pivoted ? ["Region"] : [],
-        columns: pivoted
-            ? ["Category", "Sales", "Profit"]
-            : ["Region", "Category", "City", "Sales", "Profit", "Quantity"],
-    });
-};

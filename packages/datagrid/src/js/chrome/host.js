@@ -48,8 +48,12 @@ export class ChromeFeatureHost {
         }
         this.ctx = createChromeContext(this.plugin);
         const table = this.plugin.regular_table;
-        const parent = table.parentElement;
+        // ShadowRoot is a DocumentFragment — parentElement is null; use parentNode.
+        const parent = table.parentNode;
         if (!parent) {
+            console.warn(
+                "[finosgrid] chrome mount skipped: regular-table has no parent",
+            );
             return;
         }
 
@@ -128,8 +132,8 @@ export class ChromeFeatureHost {
         for (const feature of this._features.values()) {
             feature.destroy?.();
         }
-        if (this.ctx?.slots?.root?.parentElement) {
-            const parent = this.ctx.slots.root.parentElement;
+        if (this.ctx?.slots?.root?.parentNode) {
+            const parent = this.ctx.slots.root.parentNode;
             const table = this.plugin.regular_table;
             if (table) {
                 parent.insertBefore(table, this.ctx.slots.root);
