@@ -1,21 +1,33 @@
 import perspective from "@finos/perspective";
-import { createGrid } from "@widgetstools/finosgrid/shell";
+import { createGrid, themeQuartz } from "@widgetstools/finosgrid/shell";
 import { createFIPositionFeed } from "@widgetstools/fi-position-feed";
-import shellCssUrl from "@widgetstools/finosgrid/dist/css/finosgrid-shell.css?url";
+// material first, then shell — shell must win on scrollbar / theme overrides
 import "regular-table/dist/css/material.css";
+import "@widgetstools/finosgrid/dist/css/finosgrid-shell.css";
 
 import SERVER_WASM from "@finos/perspective/dist/wasm/perspective-server.wasm?url";
 import CLIENT_WASM from "@finos/perspective/dist/wasm/perspective-js.wasm?url";
-
-const link = document.createElement("link");
-link.rel = "stylesheet";
-link.href = shellCssUrl;
-document.head.appendChild(link);
 
 const statusEl = document.getElementById("status");
 function setStatus(text) {
     if (statusEl) statusEl.textContent = text;
 }
+
+/** Cursor Light + Cursor Dark schemes (official Cursor.app theme tokens). */
+const shellTheme = themeQuartz;
+
+const themeToggle = document.getElementById("theme-toggle");
+function applyPageThemeMode(mode) {
+    const m = mode === "dark" ? "dark" : "light";
+    document.body.dataset.agThemeMode = m;
+    document.body.setAttribute("data-ag-theme-mode", m);
+    if (themeToggle) themeToggle.checked = m === "dark";
+    gridApi?.setThemeMode?.(m);
+}
+
+themeToggle?.addEventListener("change", () => {
+    applyPageThemeMode(themeToggle.checked ? "dark" : "light");
+});
 
 await Promise.all([
     perspective.init_server(fetch(SERVER_WASM)),
@@ -47,43 +59,47 @@ const feed = createFIPositionFeed({
         }
 
         /**
- * Annotate FI columnDefs with AG row grouping + aggregation for the spike.
- * Groups by desk → sector; sums key risk/position measures.
- * @param {any[]} defs
- */
-function withRowGrouping(defs) {
-    const groupFields = new Set(["book.desk", "instrument.sector"]);
-    const sumFields = new Set([
-        "position.notional",
-        "position.marketValue",
-        "risk.dv01",
-        "risk.cs01",
-    ]);
+         * Annotate FI columnDefs with AG row grouping + aggregation for the spike.
+         * Groups by desk → sector; sums key risk/position measures.
+         * @param {any[]} defs
+         */
+        function withRowGrouping(defs) {
+            const groupFields = new Set(["book.desk", "instrument.sector"]);
+            const sumFields = new Set([
+                "position.notional",
+                "position.marketValue",
+                "risk.dv01",
+                "risk.cs01",
+            ]);
 
-    function walk(nodes) {
-        return (nodes || []).map((n) => {
-            if (Array.isArray(n.children)) {
-                return { ...n, children: walk(n.children) };
+            function walk(nodes) {
+                return (nodes || []).map((n) => {
+                    if (Array.isArray(n.children)) {
+                        return { ...n, children: walk(n.children) };
+                    }
+                    const next = { ...n };
+                    if (groupFields.has(n.field)) {
+                        next.rowGroup = true;
+                        next.hide = true;
+                        next.rowGroupIndex = n.field === "book.desk" ? 0 : 1;
+                    }
+                    if (sumFields.has(n.field)) {
+                        next.aggFunc = "sum";
+                        next.enableValue = true;
+                    }
+                    return next;
+                });
             }
-            const next = { ...n };
-            if (groupFields.has(n.field)) {
-                next.rowGroup = true;
-                next.hide = true;
-                next.rowGroupIndex = n.field === "book.desk" ? 0 : 1;
-            }
-            if (sumFields.has(n.field)) {
-                next.aggFunc = "sum";
-                next.enableValue = true;
-            }
-            return next;
-        });
-    }
-    return walk(defs);
-}
+            return walk(defs);
+        }
+
+        const initialMode = themeToggle?.checked ? "dark" : "light";
 
         gridApi = createGrid(document.getElementById("grid"), {
             columnDefs: withRowGrouping(columnDefs),
             table,
+            theme: shellTheme,
+            themeMode: initialMode,
             groupDefaultExpanded: 1,
             groupTotalRow: "bottom",
             grandTotalRow: "bottom",
@@ -116,12 +132,13 @@ function withRowGrouping(defs) {
             },
             onGridReady() {
                 setStatus(
-                    `Grid ready · multi-row + cell selection · grouped desk→sector · ${leafCount} fields · waiting for snapshot…`,
+                    `Grid ready · theme + selection · grouped desk→sector · ${leafCount} fields · waiting for snapshot…`,
                 );
             },
         });
         window.gridApi = gridApi;
         window.fiFeed = feed;
+        applyPageThemeMode(initialMode);
     },
 
     async onSnapshotChunk({ flatRows, end, done }) {
@@ -157,7 +174,6 @@ function withRowGrouping(defs) {
     },
 });
 
-// Configurable feed: 50k rows, ≥300 fields, then realtime patches
 feed.start({
     rowCount: 50_000,
     minFields: 300,
@@ -166,7 +182,3 @@ feed.start({
     batchSize: 100,
     seed: 42,
 });
-
-// Console helpers:
-//   fiFeed.configure({ updatesPerSec: 5000, batchSize: 250 })
-//   fiFeed.stop() / fiFeed.start()

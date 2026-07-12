@@ -1,19 +1,54 @@
-/* finosgrid owned header shell */
+/* finosgrid owned header shell — colors from AG-style theme params
+ * (`themeQuartz.withParams` → CSS vars on .fg-shell). Fallbacks match Quartz light.
+ */
 
 .fg-shell {
+    /* Theme token fallbacks — Cursor Light (overridden by applyTheme) */
+    --fg-background: #FCFCFC;
+    --fg-foreground: #141414;
+    --fg-border: #E4E4E4;
+    --fg-accent: #3C7CAB;
+    --fg-header-bg: #F3F3F3;
+    --fg-chrome-bg: #F3F3F3;
+    --fg-odd-row: #F5F5F5;
+    --fg-secondary-bg: #F3F3F3;
+    --fg-muted: #5C5C5C;
+    --fg-disabled: #9A9A9A;
+    --fg-input-bg: #FFFFFF;
+    --fg-input-border: #D0D0D0;
+    --fg-selected-row: #E8E8E8;
+    --fg-range-bg: #DCDCDC;
+    --fg-range-border: #3C7CAB;
+    --fg-focus: #3C7CAB;
+    --fg-row-hover: #EFEFEF;
+    --fg-popup-bg: #F3F3F3;
+    --fg-popup-shadow: 0 4px 16px #1414141E;
+    --fg-pin-shadow: #1414141E;
+    --fg-positive: #0B6E4F;
+    --fg-negative: #CF2D56;
+    --fg-font-size: 13px;
+    --fg-header-font-size: 13px;
+    --fg-spacing: 6px;
+    --fg-font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", system-ui,
+        sans-serif;
+
     display: flex;
     flex-direction: column;
     width: 100%;
     height: 100%;
     min-height: 0;
     overflow: hidden;
-    font-family: "IBM Plex Sans", -apple-system, BlinkMacSystemFont, "Segoe UI",
-        Roboto, sans-serif;
-    font-size: 13px;
-    color: #181d1f;
-    background: #fff;
-    border: 1px solid #dde2e6;
+    font-family: var(--fg-font-family);
+    font-size: var(--fg-font-size);
+    color: var(--fg-foreground);
+    background: var(--fg-background);
+    border: 1px solid var(--fg-border);
     box-sizing: border-box;
+    color-scheme: light;
+}
+
+.fg-shell[data-ag-theme-mode="dark"] {
+    color-scheme: dark;
 }
 
 .fg-shell__header {
@@ -21,8 +56,8 @@
     display: flex;
     flex-direction: column;
     min-width: 0;
-    background: #f5f7f7;
-    border-bottom: 1px solid #dde2e6;
+    background: var(--fg-header-bg);
+    border-bottom: 1px solid var(--fg-border);
     z-index: 2;
 }
 
@@ -41,7 +76,7 @@
     overflow-x: auto;
     overflow-y: hidden;
     min-height: 28px;
-    border-bottom: 1px solid #dde2e6;
+    border-bottom: 1px solid var(--fg-border);
     box-sizing: border-box;
     /* Programmatic scroll sync with body — hide native bars */
     scrollbar-width: none;
@@ -57,7 +92,7 @@
 
 .fg-shell__filter-row {
     min-height: 34px;
-    background: #f5f7f7;
+    background: var(--fg-header-bg);
 }
 
 .fg-shell__track {
@@ -72,7 +107,7 @@
 .fg-shell__leaf-cell,
 .fg-shell__filter-cell {
     box-sizing: border-box;
-    border-right: 1px solid #dde2e6;
+    border-right: 1px solid var(--fg-border);
     min-width: 0;
     display: flex;
     align-items: center;
@@ -83,7 +118,7 @@
 .fg-shell__group-cell {
     font-weight: 600;
     gap: 4px;
-    background: #eef1f2;
+    background: var(--fg-secondary-bg);
     justify-content: flex-start;
 }
 
@@ -99,14 +134,14 @@
     border: 1px solid transparent;
     border-radius: 2px;
     background: transparent;
-    color: #51575d;
+    color: var(--fg-muted);
     cursor: pointer;
 }
 
 .fg-shell__group-toggle:hover {
-    border-color: #bac0c6;
-    background: #fff;
-    color: #2196f3;
+    border-color: var(--fg-input-border);
+    background: var(--fg-background);
+    color: var(--fg-accent);
 }
 
 .fg-shell__group-toggle svg {
@@ -138,7 +173,7 @@
 
 .fg-shell__leaf-cell {
     font-weight: 600;
-    background: #f5f7f7;
+    background: var(--fg-header-bg);
     gap: 2px;
     padding: 0 6px 0 4px;
     user-select: none;
@@ -149,19 +184,19 @@
 }
 
 .fg-shell__leaf-cell.is-drag-over {
-    box-shadow: inset 2px 0 0 #2196f3;
+    box-shadow: inset 2px 0 0 var(--fg-accent);
 }
 
 .fg-shell__leaf-grip {
     flex: 0 0 auto;
     display: inline-flex;
-    color: #9aa0a6;
+    color: var(--fg-disabled);
     cursor: grab;
     opacity: 0.7;
 }
 
 .fg-shell__leaf-grip:hover {
-    color: #51575d;
+    color: var(--fg-muted);
     opacity: 1;
 }
 
@@ -185,13 +220,13 @@
     border: none;
     border-radius: 2px;
     background: transparent;
-    color: #51575d;
+    color: var(--fg-muted);
     cursor: pointer;
 }
 
 .fg-shell__icon-btn:hover:not(:disabled) {
-    background: #e8ecee;
-    color: #181d1f;
+    background: var(--fg-secondary-bg);
+    color: var(--fg-foreground);
 }
 
 .fg-shell__icon-btn:disabled {
@@ -200,11 +235,11 @@
 }
 
 .fg-shell__icon-btn.is-muted {
-    color: #9aa0a6;
+    color: var(--fg-disabled);
 }
 
 .fg-shell__icon-btn.is-active {
-    color: #2196f3;
+    color: var(--fg-accent);
 }
 
 .fg-shell__icon-btn svg {
@@ -223,12 +258,12 @@
 
 .fg-shell__resize-handle:hover,
 .fg-shell__resize-handle:active {
-    background: rgba(33, 150, 243, 0.35);
+    background: color-mix(in srgb, var(--fg-accent) 35%, transparent);
 }
 
 .fg-shell__filter-cell {
     padding: 4px 6px;
-    background: #f5f7f7;
+    background: var(--fg-header-bg);
 }
 
 .fg-shell__filter-input {
@@ -236,16 +271,24 @@
     min-width: 0;
     height: 24px;
     padding: 0 6px;
-    border: 1px solid #bac0c6;
+    border: 1px solid var(--fg-input-border);
     border-radius: 2px;
     font: inherit;
     font-size: 12px;
     box-sizing: border-box;
+    background: var(--fg-input-bg);
+    color: var(--fg-foreground);
+    color-scheme: inherit;
+}
+
+.fg-shell__filter-input::placeholder {
+    color: var(--fg-disabled);
+    opacity: 1;
 }
 
 .fg-shell__filter-input:focus {
     outline: none;
-    border-color: #2196f3;
+    border-color: var(--fg-accent);
 }
 
 .fg-shell__pin-left,
@@ -253,7 +296,7 @@
     position: sticky !important;
     z-index: 5;
     /* Opaque paint so scrolled columns never show through */
-    background-color: #f5f7f7 !important;
+    background-color: var(--fg-header-bg) !important;
     background-clip: border-box;
     isolation: isolate;
 }
@@ -262,34 +305,83 @@
 .fg-shell__leaf-cell.fg-shell__pin-right,
 .fg-shell__filter-cell.fg-shell__pin-left,
 .fg-shell__filter-cell.fg-shell__pin-right {
-    background-color: #f5f7f7 !important;
+    background-color: var(--fg-header-bg) !important;
 }
 
 .fg-shell__pin-left {
     /* Solid edge + soft shadow covers content sliding underneath */
     box-shadow:
-        1px 0 0 #dde2e6,
-        6px 0 10px -4px rgba(24, 29, 31, 0.35);
+        1px 0 0 var(--fg-border),
+        6px 0 10px -4px var(--fg-pin-shadow);
 }
 
 .fg-shell__pin-right {
     box-shadow:
-        -1px 0 0 #dde2e6,
-        -6px 0 10px -4px rgba(24, 29, 31, 0.35);
+        -1px 0 0 var(--fg-border),
+        -6px 0 10px -4px var(--fg-pin-shadow);
 }
 
+/* Menus often mount on document.body — solid fallbacks + self theme attrs */
 .fg-shell__menu {
     position: fixed;
     z-index: 10000;
-    min-width: 132px;
+    min-width: 168px;
     padding: 4px;
-    background: #fff;
-    border: 1px solid #dde2e6;
+    background: var(--fg-popup-bg, #f3f3f3);
+    border: 1px solid var(--fg-border, #e4e4e4);
     border-radius: 4px;
-    box-shadow: 0 4px 16px rgba(24, 29, 31, 0.12);
+    box-shadow: var(--fg-popup-shadow, 0 4px 16px rgba(20, 20, 20, 0.12));
+    color: var(--fg-foreground, #141414);
+    font-family: var(--fg-font-family, -apple-system, BlinkMacSystemFont, "Segoe UI", system-ui, sans-serif);
+    font-size: var(--fg-font-size, 13px);
     display: flex;
     flex-direction: column;
     gap: 2px;
+}
+
+.fg-shell__menu[data-ag-theme-mode="dark"],
+.fg-shell[data-ag-theme-mode="dark"] .fg-shell__menu {
+    background: var(--fg-popup-bg, #1e1e1e);
+    border-color: var(--fg-border, #2b2b2b);
+    color: var(--fg-foreground, #e4e4e4);
+    box-shadow: var(--fg-popup-shadow, 0 4px 16px rgba(0, 0, 0, 0.45));
+}
+
+.fg-shell__menu--submenu {
+    display: none;
+    position: absolute;
+    left: calc(100% - 4px);
+    top: -4px;
+    min-width: 140px;
+    background: var(--fg-popup-bg, #f3f3f3);
+    border: 1px solid var(--fg-border, #e4e4e4);
+    border-radius: 4px;
+    box-shadow: var(--fg-popup-shadow, 0 4px 16px rgba(20, 20, 20, 0.12));
+    color: var(--fg-foreground, #141414);
+    padding: 4px;
+    z-index: 10001;
+}
+
+.fg-shell__menu[data-ag-theme-mode="dark"] .fg-shell__menu--submenu,
+.fg-shell[data-ag-theme-mode="dark"] .fg-shell__menu--submenu {
+    background: var(--fg-popup-bg, #1e1e1e);
+    border-color: var(--fg-border, #2b2b2b);
+    color: var(--fg-foreground, #e4e4e4);
+}
+
+.fg-shell__menu-submenu-wrap {
+    position: relative;
+}
+
+.fg-shell__menu-submenu-wrap:hover > .fg-shell__menu--submenu,
+.fg-shell__menu-submenu-wrap:focus-within > .fg-shell__menu--submenu {
+    display: flex;
+}
+
+.fg-shell__menu-separator {
+    height: 1px;
+    margin: 4px 6px;
+    background: var(--fg-border);
 }
 
 .fg-shell__menu-item {
@@ -303,18 +395,47 @@
     background: transparent;
     font: inherit;
     font-size: 12px;
-    color: #181d1f;
+    color: var(--fg-foreground, #141414);
     text-align: left;
     cursor: pointer;
 }
 
-.fg-shell__menu-item:hover {
-    background: #eef1f2;
+.fg-shell__menu[data-ag-theme-mode="dark"] .fg-shell__menu-item {
+    color: var(--fg-foreground, #e4e4e4);
+}
+
+.fg-shell__menu-item--submenu {
+    justify-content: space-between;
+}
+
+.fg-shell__menu-chevron {
+    color: var(--fg-muted);
+    margin-left: 12px;
+}
+
+.fg-shell__menu-label {
+    flex: 1;
+    min-width: 0;
+}
+
+.fg-shell__menu-shortcut {
+    color: var(--fg-disabled);
+    font-size: 11px;
+    margin-left: 12px;
+}
+
+.fg-shell__menu-item:hover:not(:disabled) {
+    background: var(--fg-row-hover, var(--fg-secondary-bg));
+}
+
+.fg-shell__menu-item:disabled {
+    opacity: 0.45;
+    cursor: default;
 }
 
 .fg-shell__menu-item.is-active {
-    background: #e3f2fd;
-    color: #1565c0;
+    background: color-mix(in srgb, var(--fg-accent) 18%, var(--fg-background));
+    color: var(--fg-focus);
 }
 
 .fg-shell__body {
@@ -328,7 +449,7 @@
     flex-direction: row;
     align-items: stretch;
     overflow: hidden;
-    background: #fff;
+    background: var(--fg-background);
 }
 
 .fg-shell__body-pane {
@@ -346,7 +467,16 @@
     z-index: 5;
     overflow: hidden;
     pointer-events: none;
-    background: #fff;
+    background: var(--fg-background);
+}
+
+/* Center pane owns the visible scrollbars — keep sticky chrome clear of them */
+.fg-shell__body-pane--center .fg-shell__sticky-groups {
+    right: 12px;
+}
+
+.fg-shell__body-pane--center .fg-shell__sticky-groups--bottom {
+    bottom: 12px;
 }
 
 /* Collapse/expand from sticky headers (overlay otherwise ignores pointer) */
@@ -358,16 +488,16 @@
 .fg-shell__sticky-groups--top {
     top: 0;
     bottom: auto;
-    box-shadow: 0 2px 4px rgba(24, 29, 31, 0.12);
-    border-bottom: 1px solid #dde2e6;
+    box-shadow: 0 2px 4px var(--fg-pin-shadow);
+    border-bottom: 1px solid var(--fg-border);
 }
 
 /* AG `.ag-sticky-bottom`: bottom totals pin below scrolling leaves */
 .fg-shell__sticky-groups--bottom {
     top: auto;
     bottom: 0;
-    box-shadow: 0 -2px 4px rgba(24, 29, 31, 0.12);
-    border-top: 1px solid #dde2e6;
+    box-shadow: 0 -2px 4px var(--fg-pin-shadow);
+    border-top: 1px solid var(--fg-border);
 }
 
 .fg-shell__sticky-groups__track {
@@ -383,18 +513,18 @@
     flex-direction: row;
     align-items: stretch;
     min-height: 27px;
-    background: #fff;
-    border-bottom: 1px solid #dde2e6;
+    background: var(--fg-background);
+    border-bottom: 1px solid var(--fg-border);
 }
 
 .fg-shell__sticky-groups--bottom .fg-shell__sticky-group-row {
     border-bottom: none;
-    border-top: 1px solid #dde2e6;
+    border-top: 1px solid var(--fg-border);
 }
 
 .fg-shell__sticky-group-cell {
     box-sizing: border-box;
-    border-right: 1px solid #dde2e6;
+    border-right: 1px solid var(--fg-border);
     padding: 4px 8px;
     display: flex;
     align-items: center;
@@ -404,8 +534,8 @@
     font-size: 13px;
     font-weight: 400;
     font-style: normal;
-    color: #333;
-    background: #fff;
+    color: var(--fg-foreground);
+    background: var(--fg-background);
 }
 
 /* Sticky labels must match body group rows (not semi-bold) */
@@ -417,17 +547,17 @@
 .fg-shell__body-pane--right {
     flex: 0 0 auto;
     z-index: 2;
-    background: #fff;
+    background: var(--fg-background);
 }
 
 .fg-shell__body-pane--left {
-    box-shadow: 6px 0 10px -4px rgba(24, 29, 31, 0.35);
-    border-right: 1px solid #dde2e6;
+    box-shadow: 6px 0 10px -4px var(--fg-pin-shadow);
+    border-right: 1px solid var(--fg-border);
 }
 
 .fg-shell__body-pane--right {
-    box-shadow: -6px 0 10px -4px rgba(24, 29, 31, 0.35);
-    border-left: 1px solid #dde2e6;
+    box-shadow: -6px 0 10px -4px var(--fg-pin-shadow);
+    border-left: 1px solid var(--fg-border);
 }
 
 .fg-shell__body-pane--center {
@@ -445,40 +575,90 @@
     padding: 0 !important;
 }
 
-/* Center pane: both-axis scroll + visible scrollbars */
-.fg-shell__body-rt--center {
-    overflow: scroll;
-    scrollbar-gutter: stable both-edges;
-    scrollbar-width: thin;
-    scrollbar-color: #9aa0a6 #eef1f2;
+/*
+ * Center pane scrollbars — visible whenever rows/columns overflow.
+ *
+ * On Mac, Chromium's standard `scrollbar-width` / `scrollbar-color` properties
+ * keep *overlay* scrollbars (fade away; offsetWidth === clientWidth). Use
+ * ::-webkit-scrollbar only for Blink/WebKit so classic bars stay painted.
+ * Firefox gets scrollbar-* via the @supports (-moz-appearance) block.
+ * Shell CSS must load after regular-table material.css.
+ */
+.fg-shell regular-table.fg-shell__body-rt--center,
+.fg-shell regular-table.fg-shell__body-rt--center:hover {
+    overflow: auto;
+    scrollbar-gutter: stable;
+    /*
+     * material.css sets scrollbar-width/color on `regular-table`, which forces
+     * Chromium Mac *overlay* scrollbars and ignores ::-webkit-scrollbar.
+     * Unset them so classic webkit bars can paint.
+     */
+    scrollbar-width: unset !important;
+    scrollbar-color: unset !important;
 }
 
-.fg-shell__body-rt--center::-webkit-scrollbar {
-    width: 12px;
-    height: 12px;
-    background: #eef1f2;
+@supports (-moz-appearance: none) {
+    .fg-shell regular-table.fg-shell__body-rt--center,
+    .fg-shell regular-table.fg-shell__body-rt--center:hover {
+        scrollbar-width: thin;
+        scrollbar-color: var(--fg-disabled) var(--fg-secondary-bg);
+    }
 }
 
-.fg-shell__body-rt--center::-webkit-scrollbar-track {
-    background: #eef1f2;
-    border-left: 1px solid #dde2e6;
-    border-top: 1px solid #dde2e6;
+/* Classic (non-overlay) Mac/Chrome/Safari scrollbars */
+.fg-shell regular-table.fg-shell__body-rt--center::-webkit-scrollbar {
+    -webkit-appearance: none !important;
+    width: 12px !important;
+    height: 12px !important;
+    background-color: var(--fg-secondary-bg) !important;
+    display: block !important;
 }
 
-.fg-shell__body-rt--center::-webkit-scrollbar-thumb {
-    background: #9aa0a6;
+.fg-shell regular-table.fg-shell__body-rt--center::-webkit-scrollbar-corner {
+    background-color: var(--fg-secondary-bg) !important;
+    display: block !important;
+}
+
+.fg-shell regular-table.fg-shell__body-rt--center::-webkit-scrollbar-track {
+    background: var(--fg-secondary-bg) !important;
+    border-left: 1px solid var(--fg-border);
+    border-top: 1px solid var(--fg-border);
+}
+
+.fg-shell regular-table.fg-shell__body-rt--center::-webkit-scrollbar-thumb {
+    background-color: var(--fg-disabled) !important;
+    background-clip: padding-box;
     border-radius: 6px;
-    border: 2px solid #eef1f2;
+    border: 2px solid var(--fg-secondary-bg);
     min-height: 40px;
     min-width: 40px;
+    box-shadow: none !important;
 }
 
-.fg-shell__body-rt--center::-webkit-scrollbar-thumb:hover {
-    background: #6b7178;
+.fg-shell
+    regular-table.fg-shell__body-rt--center::-webkit-scrollbar-thumb:horizontal {
+    border-bottom: 2px solid var(--fg-secondary-bg);
+    border-top: 2px solid var(--fg-secondary-bg);
 }
 
-.fg-shell__body-rt--center::-webkit-scrollbar-corner {
-    background: #eef1f2;
+.fg-shell
+    regular-table.fg-shell__body-rt--center::-webkit-scrollbar-thumb:vertical {
+    border-left: 2px solid var(--fg-secondary-bg);
+    border-right: 2px solid var(--fg-secondary-bg);
+}
+
+.fg-shell
+    regular-table.fg-shell__body-rt--center::-webkit-scrollbar-thumb:hover,
+.fg-shell
+    regular-table.fg-shell__body-rt--center:hover::-webkit-scrollbar-thumb {
+    background-color: var(--fg-muted) !important;
+}
+
+/* Defeat material.css transparent-until-hover thumbs on this host */
+.fg-shell regular-table.fg-shell__body-rt--center::-webkit-scrollbar-thumb,
+.fg-shell
+    regular-table.fg-shell__body-rt--center:not(:hover)::-webkit-scrollbar-thumb {
+    background-color: var(--fg-disabled) !important;
 }
 
 /* Pin panes: vertical scroll only (synced); hide bars — center owns chrome */
@@ -515,28 +695,63 @@
 
 .fg-shell__body-rt td,
 .fg-shell__body-rt th {
-    border-right: 1px solid #dde2e6;
-    border-bottom: 1px solid #dde2e6;
+    border-right: 1px solid var(--fg-border);
+    border-bottom: 1px solid var(--fg-border);
     padding: 4px 8px;
     font-size: 13px;
     white-space: nowrap;
     box-sizing: border-box;
     min-width: 60px;
-    background: #fff;
+    background: var(--fg-background);
+    color: var(--fg-foreground);
+}
+
+/* Kill regular-table material.css light-theme rules that fight Cursor dark/light */
+.fg-shell .fg-shell__body-rt regular-table table,
+.fg-shell .fg-shell__body-rt regular-table {
+    color: var(--fg-foreground) !important;
+    font-family: var(--fg-font-family) !important;
+}
+
+.fg-shell .fg-shell__body-rt regular-table tr:hover,
+.fg-shell .fg-shell__body-rt regular-table tr:hover td {
+    color: var(--fg-foreground) !important;
+    background: var(--fg-row-hover) !important;
+    opacity: 1 !important;
+}
+
+.fg-shell .fg-shell__body-rt regular-table .rt-selected td {
+    background-color: var(--fg-selected-row) !important;
+}
+
+.fg-shell .psp-positive:not(:focus),
+.fg-shell .rt-positive {
+    color: var(--fg-positive, #a3be8c) !important;
+}
+
+.fg-shell .psp-negative:not(:focus),
+.fg-shell .rt-negative {
+    color: var(--fg-negative, #e34671) !important;
 }
 
 .fg-shell__body-rt tbody tr:nth-child(even) td {
-    background: #fafbfc;
+    background: var(--fg-odd-row);
 }
 
 .fg-shell__body-pane--left .fg-shell__body-rt td,
 .fg-shell__body-pane--right .fg-shell__body-rt td {
-    background-color: #fff;
+    background-color: var(--fg-background);
 }
 
 .fg-shell__body-pane--left .fg-shell__body-rt tbody tr:nth-child(even) td,
 .fg-shell__body-pane--right .fg-shell__body-rt tbody tr:nth-child(even) td {
-    background-color: #fafbfc;
+    background-color: var(--fg-odd-row);
+}
+
+.fg-shell__body-rt tbody tr:hover td,
+.fg-shell__body-pane--left .fg-shell__body-rt tbody tr:hover td,
+.fg-shell__body-pane--right .fg-shell__body-rt tbody tr:hover td {
+    background-color: var(--fg-row-hover) !important;
 }
 
 /* Realtime tick flash */
@@ -567,7 +782,7 @@
 
 .fg-shell__tree-cell--detail {
     font-weight: 400;
-    color: #51575d;
+    color: var(--fg-muted);
 }
 
 .fg-shell__tree-toggle {
@@ -581,15 +796,15 @@
     border: 1px solid transparent;
     border-radius: 2px;
     background: transparent;
-    color: #51575d;
+    color: var(--fg-muted);
     cursor: pointer;
     vertical-align: middle;
 }
 
 .fg-shell__tree-toggle:hover {
-    border-color: #bac0c6;
-    background: #fff;
-    color: #2196f3;
+    border-color: var(--fg-input-border);
+    background: var(--fg-background);
+    color: var(--fg-accent);
 }
 
 .fg-shell__tree-toggle svg {
@@ -637,7 +852,7 @@
     tbody
     tr
     td.fg-shell__cell--row-selected {
-    background-color: rgba(33, 150, 243, 0.12) !important;
+    background-color: var(--fg-selected-row) !important;
 }
 
 .fg-shell__body-rt tbody tr td.fg-shell__cell--range-selected,
@@ -651,7 +866,7 @@
     tbody
     tr
     td.fg-shell__cell--range-selected {
-    background-color: rgba(33, 150, 243, 0.22) !important;
+    background-color: var(--fg-range-bg) !important;
 }
 
 .fg-shell__body-rt
@@ -668,74 +883,74 @@
     tbody
     tr
     td.fg-shell__cell--row-selected.fg-shell__cell--range-selected {
-    background-color: rgba(33, 150, 243, 0.28) !important;
+    background-color: color-mix(in srgb, var(--fg-range-bg) 80%, var(--fg-selected-row)) !important;
 }
 
 /* Range perimeter — inset box-shadow so borders stay inside the cell */
 .fg-shell__body-rt td.fg-shell__cell--range-top {
-    box-shadow: inset 0 2px 0 0 #2196f3;
+    box-shadow: inset 0 2px 0 0 var(--fg-range-border);
 }
 .fg-shell__body-rt td.fg-shell__cell--range-bottom {
-    box-shadow: inset 0 -2px 0 0 #2196f3;
+    box-shadow: inset 0 -2px 0 0 var(--fg-range-border);
 }
 .fg-shell__body-rt td.fg-shell__cell--range-left {
-    box-shadow: inset 2px 0 0 0 #2196f3;
+    box-shadow: inset 2px 0 0 0 var(--fg-range-border);
 }
 .fg-shell__body-rt td.fg-shell__cell--range-right {
-    box-shadow: inset -2px 0 0 0 #2196f3;
+    box-shadow: inset -2px 0 0 0 var(--fg-range-border);
 }
 .fg-shell__body-rt td.fg-shell__cell--range-top.fg-shell__cell--range-left {
-    box-shadow: inset 2px 0 0 0 #2196f3, inset 0 2px 0 0 #2196f3;
+    box-shadow: inset 2px 0 0 0 var(--fg-range-border), inset 0 2px 0 0 var(--fg-range-border);
 }
 .fg-shell__body-rt td.fg-shell__cell--range-top.fg-shell__cell--range-right {
-    box-shadow: inset -2px 0 0 0 #2196f3, inset 0 2px 0 0 #2196f3;
+    box-shadow: inset -2px 0 0 0 var(--fg-range-border), inset 0 2px 0 0 var(--fg-range-border);
 }
 .fg-shell__body-rt td.fg-shell__cell--range-bottom.fg-shell__cell--range-left {
-    box-shadow: inset 2px 0 0 0 #2196f3, inset 0 -2px 0 0 #2196f3;
+    box-shadow: inset 2px 0 0 0 var(--fg-range-border), inset 0 -2px 0 0 var(--fg-range-border);
 }
 .fg-shell__body-rt td.fg-shell__cell--range-bottom.fg-shell__cell--range-right {
-    box-shadow: inset -2px 0 0 0 #2196f3, inset 0 -2px 0 0 #2196f3;
+    box-shadow: inset -2px 0 0 0 var(--fg-range-border), inset 0 -2px 0 0 var(--fg-range-border);
 }
 .fg-shell__body-rt
     td.fg-shell__cell--range-top.fg-shell__cell--range-bottom.fg-shell__cell--range-left {
     box-shadow:
-        inset 2px 0 0 0 #2196f3,
-        inset 0 2px 0 0 #2196f3,
-        inset 0 -2px 0 0 #2196f3;
+        inset 2px 0 0 0 var(--fg-range-border),
+        inset 0 2px 0 0 var(--fg-range-border),
+        inset 0 -2px 0 0 var(--fg-range-border);
 }
 .fg-shell__body-rt
     td.fg-shell__cell--range-top.fg-shell__cell--range-bottom.fg-shell__cell--range-right {
     box-shadow:
-        inset -2px 0 0 0 #2196f3,
-        inset 0 2px 0 0 #2196f3,
-        inset 0 -2px 0 0 #2196f3;
+        inset -2px 0 0 0 var(--fg-range-border),
+        inset 0 2px 0 0 var(--fg-range-border),
+        inset 0 -2px 0 0 var(--fg-range-border);
 }
 .fg-shell__body-rt
     td.fg-shell__cell--range-top.fg-shell__cell--range-left.fg-shell__cell--range-right {
     box-shadow:
-        inset 2px 0 0 0 #2196f3,
-        inset -2px 0 0 0 #2196f3,
-        inset 0 2px 0 0 #2196f3;
+        inset 2px 0 0 0 var(--fg-range-border),
+        inset -2px 0 0 0 var(--fg-range-border),
+        inset 0 2px 0 0 var(--fg-range-border);
 }
 .fg-shell__body-rt
     td.fg-shell__cell--range-bottom.fg-shell__cell--range-left.fg-shell__cell--range-right {
     box-shadow:
-        inset 2px 0 0 0 #2196f3,
-        inset -2px 0 0 0 #2196f3,
-        inset 0 -2px 0 0 #2196f3;
+        inset 2px 0 0 0 var(--fg-range-border),
+        inset -2px 0 0 0 var(--fg-range-border),
+        inset 0 -2px 0 0 var(--fg-range-border);
 }
 .fg-shell__body-rt
     td.fg-shell__cell--range-top.fg-shell__cell--range-bottom.fg-shell__cell--range-left.fg-shell__cell--range-right {
     box-shadow:
-        inset 2px 0 0 0 #2196f3,
-        inset -2px 0 0 0 #2196f3,
-        inset 0 2px 0 0 #2196f3,
-        inset 0 -2px 0 0 #2196f3;
+        inset 2px 0 0 0 var(--fg-range-border),
+        inset -2px 0 0 0 var(--fg-range-border),
+        inset 0 2px 0 0 var(--fg-range-border),
+        inset 0 -2px 0 0 var(--fg-range-border);
 }
 
 /* Focused cell — stronger border on top of range chrome */
 .fg-shell__body-rt td.fg-shell__cell--range-focus {
-    outline: 2px solid #1565c0;
+    outline: 2px solid var(--fg-focus);
     outline-offset: -2px;
     z-index: 1;
     position: relative;
@@ -752,7 +967,7 @@
     height: 14px;
     margin: 0;
     cursor: pointer;
-    accent-color: #2196f3;
+    accent-color: var(--fg-accent);
 }
 
 .fg-shell__leaf-cell[data-field="ag-Grid-SelectionColumn"] {
@@ -769,8 +984,8 @@
     position: absolute;
     width: 8px;
     height: 8px;
-    background: #2196f3;
-    border: 1px solid #fff;
+    background: var(--fg-accent);
+    border: 1px solid var(--fg-background);
     box-sizing: border-box;
     cursor: crosshair;
     z-index: 6;
@@ -778,6 +993,6 @@
 }
 
 .fg-shell__body-rt td.fg-shell__cell--header-highlight {
-    outline: 1px solid rgba(33, 150, 243, 0.55);
+    outline: 1px solid color-mix(in srgb, var(--fg-accent) 55%, transparent);
     outline-offset: -1px;
 }

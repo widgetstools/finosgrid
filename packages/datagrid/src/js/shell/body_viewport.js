@@ -828,6 +828,8 @@ export function createBodyViewport({
             if (meta?.y == null || meta.x == null) continue;
             const field = pane.fields[meta.x];
             const rowIndex = meta.y;
+            if (field) td.dataset.field = field;
+            td.dataset.rowIndex = String(rowIndex);
             const selectedRow = !!rowSelectionCtrl?.isIdSelected?.(
                 String(rowIndex),
             );
@@ -1501,6 +1503,58 @@ export function createBodyViewport({
         await drawAll();
     }
 
+    /**
+     * Expand every row group to leaf level:
+     * 1) Perspective `set_depth(groupBy.length)` (engine tree)
+     * 2) Open all finest groups to detail leaves via one count aggregate view;
+     *    filtered detail views are created lazily on scroll.
+     */
+    async function expandAllGroups() {
+        if (!engineView || !groupBy.length) return;
+        try {
+            if (typeof engineView.set_depth === "function") {
+                await engineView.set_depth(groupBy.length);
+            }
+            stickySignature = "";
+            if (rowModelActive() && detailModel) {
+                if (detailLeavesActive() && detailModel.expandAllToLeaves) {
+                    await detailModel.expandAllToLeaves(engineView);
+                } else {
+                    await detailModel.rebuild(engineView);
+                }
+                numRows = detailModel.numRows;
+            } else {
+                numRows = await engineView.num_rows();
+            }
+            await drawAll({ invalid_columns: true });
+        } catch {
+            /* view replaced */
+        }
+    }
+
+    /**
+     * Collapse every row group to the root (Perspective `set_depth(0)`).
+     */
+    async function collapseAllGroups() {
+        if (!engineView || !groupBy.length) return;
+        try {
+            if (typeof engineView.set_depth === "function") {
+                await engineView.set_depth(0);
+            }
+            stickySignature = "";
+            if (rowModelActive() && detailModel) {
+                await detailModel.closeAllDetails?.();
+                await detailModel.rebuild(engineView);
+                numRows = detailModel.numRows;
+            } else {
+                numRows = await engineView.num_rows();
+            }
+            await drawAll({ invalid_columns: true });
+        } catch {
+            /* view replaced */
+        }
+    }
+
     leftPane.wrap.style.display = "none";
     rightPane.wrap.style.display = "none";
     centerPane.configure([], 0, "both");
@@ -1515,6 +1569,8 @@ export function createBodyViewport({
         setGroupTotalRow,
         setGrandTotalRow,
         onEngineUpdate,
+        expandAllGroups,
+        collapseAllGroups,
         measureColumnWidths,
         applyPinnedLayout,
         refreshSelectionPaint,

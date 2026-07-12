@@ -20,6 +20,7 @@ import {
     iconPinOff,
     iconGrip,
 } from "./icons.js";
+import { applyPopupTheme } from "./context_menu.js";
 
 const DEFAULT_COL_WIDTH = 120;
 
@@ -380,6 +381,10 @@ export function createHeaderStack({
         const rect = anchor.getBoundingClientRect();
         menu.style.top = `${rect.bottom + 2}px`;
         menu.style.left = `${rect.left}px`;
+        // Body mount avoids .fg-shell overflow clipping; stamp theme tokens.
+        const themeHost =
+            root.closest?.(".fg-shell") || root.parentElement || root;
+        applyPopupTheme(menu, themeHost);
         document.body.appendChild(menu);
         openMenu = menu;
     }
@@ -413,6 +418,13 @@ export function createHeaderStack({
 
                 if (seg.kind === "group") {
                     cell.className = "fg-shell__group-cell";
+                    cell.dataset.groupId = seg.group.groupId || "";
+                    cell.dataset.expandable = isGroupExpandable(
+                        seg.group,
+                        tree().getOpenState(),
+                    )
+                        ? "1"
+                        : "0";
                     if (seg.group.suppressStickyLabel === true) {
                         cell.classList.add(
                             "fg-shell__group-cell--no-sticky-label",

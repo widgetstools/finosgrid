@@ -13,6 +13,8 @@ import {
     computeStickyGroupEntries,
     splitStickyTopAndBottom,
     stickyTotalLabel,
+    fetchFinestGroupCounts,
+    createDetailRowModel,
 } from "../../../src/js/shell/detail_row_model.js";
 import { isRowPathExpandable } from "../../../src/js/shell/row_grouping.js";
 
@@ -162,5 +164,163 @@ describe("stickyTotalLabel", () => {
             stickyTotalLabel(["East", "Furniture"]),
             "Total Furniture",
         );
+    });
+});
+
+describe("fetchFinestGroupCounts", () => {
+    it("uses one count-aggregate view and keeps only finest paths", async () => {
+        /** @type {any[]} */
+        const created = [];
+        const table = {
+            async view(config) {
+                created.push(config);
+                return {
+                    async set_depth() {},
+                    async num_rows() {
+                        return 4;
+                    },
+                    async to_columns() {
+                        return {
+                            __ROW_PATH__: [
+                                [],
+                                ["DeskA"],
+                                ["DeskA", "Tech"],
+                                ["DeskB", "Energy"],
+                            ],
+                            positionId: [100, 40, 25, 15],
+                        };
+                    },
+                    async delete() {
+                        this.deleted = true;
+                    },
+                    deleted: false,
+                };
+            },
+        };
+        const counts = await fetchFinestGroupCounts({
+            table,
+            groupBy: ["book.desk", "instrument.sector"],
+            countField: "positionId",
+        });
+        assert.equal(created.length, 1);
+        assert.deepEqual(created[0].group_by, [
+            "book.desk",
+            "instrument.sector",
+        ]);
+        assert.equal(created[0].aggregates.positionId, "count");
+        assert.equal(counts.size, 2);
+        assert.equal(counts.get(pathKey(["DeskA", "Tech"])), 25);
+        assert.equal(counts.get(pathKey(["DeskB", "Energy"])), 15);
+        assert.equal(counts.has(pathKey(["DeskA"])), false);
+    });
+});
+
+describe("expandAllToLeaves", () => {
+    it("marks all finest groups expanded using batch counts without N detail views", async () => {
+        let detailViews = 0;
+        const groupView = {
+            async num_rows() {
+                return 4;
+            },
+            async to_columns() {
+                return {
+                    __ROW_PATH__: [
+                        [],
+                        ["DeskA"],
+                        ["DeskA", "Tech"],
+                        ["DeskB", "Energy"],
+                    ],
+                };
+            },
+        };
+        const table = {
+            async view(config) {
+                if (config.group_by) {
+                    return {
+                        async set_depth() {},
+                        async num_rows() {
+                            return 4;
+                        },
+                        async to_columns() {
+                            return {
+                                __ROW_PATH__: [
+                                    [],
+                                    ["DeskA"],
+                                    ["DeskA", "Tech"],
+                                    ["DeskB", "Energy"],
+                                ],
+                                positionId: [100, 40, 3, 2],
+                            };
+                        },
+                        async delete() {},
+                    };
+                }
+                detailViews += 1;
+                return {
+                    async num_rows() {
+                        return 3;
+                    },
+                    async delete() {},
+                };
+            },
+        };
+        const model = createDetailRowModel({
+            getTable: () => table,
+            getGroupBy: () => ["book.desk", "instrument.sector"],
+            getViewFields: () => ["positionId", "position.notional"],
+        });
+        const rows = await model.expandAllToLeaves(groupView);
+        assert.equal(model._expandedSize(), 2);
+        assert.equal(model._detailCacheSize(), 0);
+        assert.equal(detailViews, 0);
+        assert.equal(model._isExpandAllLeaves(), true);
+        assert.equal(rows.length, 4 + 3 + 2);
+        assert.equal(rows.filter((r) => r.kind === "detail").length, 5);
+    });
+
+    it("rebuild keeps expand-all sticky after streaming updates", async () => {
+        const groupView = {
+            async num_rows() {
+                return 3;
+            },
+            async to_columns() {
+                return {
+                    __ROW_PATH__: [[], ["DeskA"], ["DeskA", "Tech"]],
+                };
+            },
+        };
+        const table = {
+            async view(config) {
+                if (config.group_by) {
+                    return {
+                        async set_depth() {},
+                        async num_rows() {
+                            return 3;
+                        },
+                        async to_columns() {
+                            return {
+                                __ROW_PATH__: [
+                                    [],
+                                    ["DeskA"],
+                                    ["DeskA", "Tech"],
+                                ],
+                                positionId: [10, 10, 4],
+                            };
+                        },
+                        async delete() {},
+                    };
+                }
+                return { async num_rows() { return 4; }, async delete() {} };
+            },
+        };
+        const model = createDetailRowModel({
+            getTable: () => table,
+            getGroupBy: () => ["book.desk", "instrument.sector"],
+            getViewFields: () => ["positionId"],
+        });
+        await model.expandAllToLeaves(groupView);
+        const again = await model.rebuild(groupView);
+        assert.equal(model._isExpandAllLeaves(), true);
+        assert.equal(again.filter((r) => r.kind === "detail").length, 4);
     });
 });

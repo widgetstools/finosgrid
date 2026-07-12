@@ -7,6 +7,36 @@ export type ColumnGroupShowType = "open" | "closed";
 /** Flat CSS map — same as AG Grid `HeaderStyle`. */
 export type HeaderStyle = Record<string, string | number>;
 
+export type ThemeParams = Record<string, unknown>;
+
+/** AG Theme API–compatible theme object (`themeQuartz.withParams`). */
+export interface Theme {
+    id?: string;
+    params: {
+        light?: ThemeParams;
+        dark?: ThemeParams;
+        [mode: string]: ThemeParams | undefined;
+    };
+    withParams(params: ThemeParams, mode?: string): Theme;
+}
+
+export declare const themeQuartz: Theme;
+export declare function createTheme(init?: {
+    id?: string;
+    params?: Theme["params"];
+}): Theme;
+export declare function applyTheme(
+    el: HTMLElement,
+    theme: Theme,
+    mode?: string,
+): void;
+export declare function setThemeMode(
+    el: HTMLElement,
+    mode: string,
+    theme?: Theme,
+): void;
+export declare function getThemeMode(el: HTMLElement): string;
+
 export type HeaderClass =
     | string
     | string[]
@@ -142,6 +172,33 @@ export interface GridOptions {
           };
     /** @deprecated Use `cellSelection`. */
     enableRangeSelection?: boolean;
+    /** Disable cell context menu. */
+    suppressContextMenu?: boolean;
+    /** Disable header / group-header context menus. */
+    suppressHeaderContextMenu?: boolean;
+    /** When true, Ctrl+right-click still opens the grid menu (AG). */
+    allowContextMenuWithControlKey?: boolean;
+    /** Customize cell context menu (AG `getContextMenuItems`). */
+    getContextMenuItems?: (
+        params: Record<string, unknown>,
+    ) => Array<string | Record<string, unknown>>;
+    /** Customize column header menu (AG `getMainMenuItems`). */
+    getMainMenuItems?: (
+        params: Record<string, unknown>,
+    ) => Array<string | Record<string, unknown>>;
+    onCellContextMenu?: (event: {
+        api: GridApi;
+        field?: string;
+        value?: unknown;
+        type: string;
+    }) => void;
+    /**
+     * AG Theme API — theme object from `themeQuartz.withParams(...)`.
+     * @default themeQuartz
+     */
+    theme?: Theme;
+    /** Active color scheme when the theme defines light/dark params. @default 'light' */
+    themeMode?: "light" | "dark";
     /** finosgrid extension: Perspective table — sort/filter/columns via View */
     table?: {
         view: (config: Record<string, unknown>) => Promise<{
@@ -225,6 +282,10 @@ export interface GridApi {
         group_by_depth?: number;
     };
     getRowGroupColumns(): string[];
+    /** Expand all row groups through to leaf detail rows. */
+    expandAll(): void | Promise<void>;
+    /** Collapse all row groups (Perspective set_depth(0)). */
+    collapseAll(): void | Promise<void>;
     setColumnAggFunc(key: string | { field?: string }, aggFunc: string | null): void;
     refreshCells(): Promise<void>;
     getSelectedRows(): any[];
@@ -241,6 +302,17 @@ export interface GridApi {
         columns?: string[];
     }): void;
     clearCellSelection(): void;
+    setThemeMode(mode: "light" | "dark"): void;
+    getThemeMode(): string;
+    hidePopupMenu(): void;
+    showColumnMenu(colKey: string | { field?: string; colId?: string }): void;
+    showContextMenu(params?: {
+        field?: string;
+        column?: { field?: string };
+        value?: unknown;
+        x?: number;
+        y?: number;
+    }): void;
     destroy(): void | Promise<void>;
 }
 
