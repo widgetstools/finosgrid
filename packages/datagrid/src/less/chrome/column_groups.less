@@ -1,12 +1,16 @@
 .psp-ag-chrome__column-groups {
     display: flex;
-    flex: 0 0 auto;
-    align-items: stretch;
+    flex: 0 0 28px;
+    height: 28px;
     min-height: 28px;
+    max-height: 28px;
+    align-items: stretch;
     background: var(--ag-chrome-header-bg, #f5f7f7);
     border-bottom: 1px solid var(--ag-chrome-border, #dde2e6);
     box-sizing: border-box;
-    will-change: transform;
+    position: relative;
+    z-index: 3;
+    overflow: hidden;
 }
 
 .psp-ag-column-group {

@@ -1,22 +1,56 @@
+/* Floating filter band — must sit in normal flow ABOVE regular-table.
+ * regular-table is often position:absolute inside Perspective; override that
+ * so the band is not painted over / painting over the first body row.
+ */
+
+.psp-ag-chrome regular-table {
+    position: relative !important;
+    inset: auto !important;
+    top: auto !important;
+    right: auto !important;
+    bottom: auto !important;
+    left: auto !important;
+    /* Perspective defaults margin:12px — kills filter/header column alignment */
+    margin: 0 !important;
+    flex: 1 1 auto;
+    min-height: 0;
+    /* Flexbox fill: height:0 + flex:1 claims remaining chrome space */
+    height: 0 !important;
+    width: 100% !important;
+    align-self: stretch;
+}
+
 .psp-ag-chrome__header-band {
     display: flex;
-    flex: 0 0 auto;
+    flex: 0 0 36px;
     align-items: stretch;
-    min-height: 28px;
+    height: 36px;
+    min-height: 36px;
+    max-height: 36px;
     background: var(--ag-chrome-header-bg, #f5f7f7);
     border-bottom: 1px solid var(--ag-chrome-border, #dde2e6);
     box-sizing: border-box;
+    position: relative;
+    z-index: 3;
+    overflow: hidden;
+}
+
+.psp-ag-chrome__header-band-track {
+    display: flex;
+    align-items: stretch;
+    height: 100%;
     will-change: transform;
 }
 
 .psp-ag-floating-filter {
     display: flex;
     align-items: center;
-    gap: 2px;
-    padding: 2px 4px;
+    gap: 4px;
+    padding: 4px 6px;
     box-sizing: border-box;
     border-right: 1px solid var(--ag-chrome-border, #dde2e6);
     min-width: 0;
+    background: var(--ag-chrome-header-bg, #f5f7f7);
 }
 
 .psp-ag-floating-filter--row-header {
@@ -25,8 +59,8 @@
 
 .psp-ag-floating-filter__op {
     flex: 0 0 auto;
-    max-width: 48px;
-    height: 22px;
+    max-width: 44px;
+    height: 24px;
     font-size: 11px;
     border: 1px solid var(--ag-chrome-input-border, #bac0c6);
     border-radius: 2px;
@@ -37,8 +71,8 @@
 .psp-ag-floating-filter__input {
     flex: 1;
     min-width: 0;
-    height: 22px;
-    padding: 0 4px;
+    height: 24px;
+    padding: 0 6px;
     font-size: 12px;
     border: 1px solid var(--ag-chrome-input-border, #bac0c6);
     border-radius: 2px;
@@ -47,14 +81,18 @@
     outline: none;
 }
 
+.psp-ag-floating-filter__input::placeholder {
+    color: #8b9298;
+}
+
 .psp-ag-floating-filter__input:focus {
     border-color: var(--ag-chrome-accent, #2196f3);
 }
 
 .psp-ag-set-filter-btn {
     flex: 0 0 auto;
-    width: 18px;
-    height: 22px;
+    width: 22px;
+    height: 24px;
     padding: 0;
     border: 1px solid var(--ag-chrome-input-border, #bac0c6);
     border-radius: 2px;

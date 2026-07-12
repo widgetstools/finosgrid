@@ -1,5 +1,6 @@
 /* AG Grid Quartz–inspired tokens for Perspective datagrid chrome.
  * Applied when [data-ag-theme="quartz"] is set on the chrome root.
+ * Tuned against apps/ag-grid-reference (Enterprise v36 Quartz).
  */
 
 .psp-ag-chrome {
@@ -9,14 +10,11 @@
     height: 100%;
     min-height: 0;
     position: relative;
+    overflow: hidden;
     font-family: "IBM Plex Sans", -apple-system, BlinkMacSystemFont, "Segoe UI",
         Roboto, Oxygen-Sans, Ubuntu, Cantarell, "Helvetica Neue", sans-serif;
     font-size: 13px;
-}
-
-.psp-ag-chrome regular-table {
-    flex: 1;
-    min-height: 0;
+    background: #ffffff;
 }
 
 .psp-ag-chrome[data-ag-theme="quartz"],
@@ -24,7 +22,7 @@
     --ag-chrome-header-bg: #f5f7f7;
     --ag-chrome-header-fg: #181d1f;
     --ag-chrome-border: #dde2e6;
-    --ag-chrome-row-hover: #f5f7f7;
+    --ag-chrome-row-hover: #f0f3f5;
     --ag-chrome-selected: #b7dbf7;
     --ag-chrome-input-bg: #ffffff;
     --ag-chrome-input-border: #bac0c6;
@@ -33,14 +31,14 @@
     --ag-chrome-accent: #2196f3;
     --ag-chrome-icon: #51575d;
     --ag-chrome-spacing: 4px;
+    --ag-chrome-odd-row: #fafbfc;
 
-    /* Map onto Perspective / regular-table vars where possible */
     --plugin--background: #ffffff;
-    --rt-pos-cell--color: #13653f;
+    --rt-pos-cell--color: #0b6e4f;
+    --rt-neg-cell--color: #8b1e1e;
     --inactive--color: #8b9298;
 }
 
-/* Dark — when viewer is in dark mode */
 :host-context(perspective-viewer.dark) .psp-ag-chrome[data-ag-theme="quartz"],
 perspective-viewer.dark .psp-ag-chrome[data-ag-theme="quartz"],
 .psp-ag-chrome[data-ag-theme="quartz-dark"] {
@@ -55,7 +53,13 @@ perspective-viewer.dark .psp-ag-chrome[data-ag-theme="quartz"],
     --ag-chrome-popup-shadow: 0 1px 4px rgba(0, 0, 0, 0.45);
     --ag-chrome-accent: #4ea1f3;
     --ag-chrome-icon: #a8b0ba;
+    --ag-chrome-odd-row: #161e2a;
     --plugin--background: #141c27;
+}
+
+.psp-ag-chrome[data-ag-theme="quartz"] regular-table table {
+    border-collapse: separate;
+    border-spacing: 0;
 }
 
 .psp-ag-chrome[data-ag-theme="quartz"] regular-table table thead th,
@@ -63,15 +67,33 @@ perspective-viewer.dark .psp-ag-chrome[data-ag-theme="quartz"],
     background-color: var(--ag-chrome-header-bg) !important;
     color: var(--ag-chrome-header-fg);
     border-color: var(--ag-chrome-border);
+    border-bottom: 1px solid var(--ag-chrome-border);
     font-weight: 600;
+    font-size: 13px;
+    padding: 6px 8px !important;
+}
+
+.psp-ag-chrome[data-ag-theme="quartz"] regular-table table tbody td,
+.psp-ag-chrome[data-ag-theme="quartz"] regular-table table tbody th {
+    border-color: var(--ag-chrome-border);
+    padding: 4px 8px !important;
+    font-size: 13px;
+}
+
+.psp-ag-chrome[data-ag-theme="quartz"] regular-table table tbody tr:nth-child(even) td,
+.psp-ag-chrome[data-ag-theme="quartz"] regular-table table tbody tr:nth-child(even) th {
+    background-color: var(--ag-chrome-odd-row);
 }
 
 .psp-ag-chrome[data-ag-theme="quartz"] regular-table table tbody tr:hover td,
 .psp-ag-chrome[data-ag-theme="quartz"] regular-table table tbody tr:hover th {
-    background-color: var(--ag-chrome-row-hover);
+    background-color: var(--ag-chrome-row-hover) !important;
 }
 
-.psp-ag-chrome[data-ag-theme="quartz"] regular-table table td,
-.psp-ag-chrome[data-ag-theme="quartz"] regular-table table th {
-    border-color: var(--ag-chrome-border);
+/* Column group band above floating filters */
+.psp-ag-chrome__column-groups {
+    z-index: 3;
+    flex: 0 0 28px;
+    height: 28px;
+    min-height: 28px;
 }

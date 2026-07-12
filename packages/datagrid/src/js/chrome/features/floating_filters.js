@@ -7,7 +7,7 @@ import { FLOATING_FILTER_DEBOUNCE_MS } from "../types.js";
 
 function defaultOpForType(type) {
     if (type === "integer" || type === "float") {
-        return "==";
+        return ">=";
     }
     if (type === "boolean") {
         return "==";
@@ -24,14 +24,28 @@ export function createFloatingFiltersFeature() {
     let debounceTimer = null;
     let onScroll = null;
     let onDraw = null;
+    /** @type {HTMLElement|null} */
+    let track = null;
     /** @type {Map<string, HTMLElement>} */
     const inputs = new Map();
+
+    function ensureTrack() {
+        const band = ctx.slots.headerBand;
+        track = band.querySelector(".psp-ag-chrome__header-band-track");
+        if (!track) {
+            track = document.createElement("div");
+            track.className = "psp-ag-chrome__header-band-track";
+            band.appendChild(track);
+        }
+        return track;
+    }
 
     function clearBand() {
         if (!ctx) {
             return;
         }
-        ctx.slots.headerBand.replaceChildren();
+        const t = ensureTrack();
+        t.replaceChildren();
         inputs.clear();
     }
 
@@ -85,16 +99,16 @@ export function createFloatingFiltersFeature() {
         clearBand();
         const paths = ctx.getColumnPaths();
         const band = ctx.slots.headerBand;
+        const t = ensureTrack();
         band.style.display = "flex";
-        band.style.overflow = "hidden";
 
-        // Spacer for row-header columns
         const groupDepth = ctx.plugin.model._config?.group_by?.length || 0;
         if (groupDepth > 0) {
             const spacer = document.createElement("div");
-            spacer.className = "psp-ag-floating-filter psp-ag-floating-filter--row-header";
-            spacer.style.flex = `0 0 ${groupDepth * 100}px`;
-            band.appendChild(spacer);
+            spacer.className =
+                "psp-ag-floating-filter psp-ag-floating-filter--row-header";
+            spacer.style.flex = `0 0 ${Math.max(groupDepth * 100, 120)}px`;
+            t.appendChild(spacer);
         }
 
         for (const path of paths) {
@@ -104,15 +118,17 @@ export function createFloatingFiltersFeature() {
             cell.dataset.column = path;
 
             let opEl = null;
+            // Number columns: AG-like compact op + value (default >=)
             if (type === "integer" || type === "float") {
                 opEl = document.createElement("select");
                 opEl.className = "psp-ag-floating-filter__op";
-                for (const op of ["==", "!=", ">", ">=", "<", "<="]) {
+                for (const op of [">=", ">", "<=", "<", "==", "!="]) {
                     const opt = document.createElement("option");
                     opt.value = op;
                     opt.textContent = op;
                     opEl.appendChild(opt);
                 }
+                opEl.value = defaultOpForType(type);
                 cell.appendChild(opEl);
             }
 
@@ -133,8 +149,13 @@ export function createFloatingFiltersFeature() {
             } else {
                 input = document.createElement("input");
                 input.className = "psp-ag-floating-filter__input";
-                input.type = type === "integer" || type === "float" ? "number" : "text";
-                input.placeholder = `Filter ${leafName(path)}…`;
+                input.type =
+                    type === "integer" || type === "float" ? "number" : "text";
+                input.placeholder =
+                    type === "integer" || type === "float"
+                        ? ""
+                        : `Filter…`;
+                input.setAttribute("aria-label", `Filter ${leafName(path)}`);
             }
 
             const existing = ctx.chromeFilterState[path];
@@ -144,7 +165,7 @@ export function createFloatingFiltersFeature() {
                         ? "true"
                         : existing.value === false
                           ? "false"
-                          : existing.value ?? "";
+                          : (existing.value ?? "");
                 if (opEl && existing.op) {
                     opEl.value = existing.op;
                 }
@@ -156,7 +177,7 @@ export function createFloatingFiltersFeature() {
             opEl?.addEventListener("change", handler);
 
             cell.appendChild(input);
-            band.appendChild(cell);
+            t.appendChild(cell);
             inputs.set(path, cell);
         }
 
@@ -164,14 +185,14 @@ export function createFloatingFiltersFeature() {
     }
 
     function syncGeometry() {
-        if (!ctx?.regular_table) {
+        if (!ctx?.regular_table || !track) {
             return;
         }
         const table = ctx.regular_table;
         const scrollLeft = table.scrollLeft || 0;
-        ctx.slots.headerBand.style.transform = `translateX(${-scrollLeft}px)`;
+        // Translate only the track — band stays in document flow (no overlap).
+        track.style.transform = `translateX(${-scrollLeft}px)`;
 
-        // Match cell widths from first body header row if available
         const headerRow = table.querySelector("thead tr:last-child");
         if (!headerRow) {
             return;
@@ -179,7 +200,6 @@ export function createFloatingFiltersFeature() {
         const ths = [...headerRow.children].filter(
             (el) => el.tagName === "TH" || el.tagName === "TD",
         );
-        // Skip tree/row header ths that don't map to column paths
         const pathCells = [...inputs.values()];
         let thIndex = ths.length - pathCells.length;
         if (thIndex < 0) thIndex = 0;
@@ -197,6 +217,7 @@ export function createFloatingFiltersFeature() {
         id: "floatingFilters",
         mount(chromeCtx) {
             ctx = chromeCtx;
+            ensureTrack();
             onScroll = () => syncGeometry();
             onDraw = () => {
                 requestAnimationFrame(() => syncGeometry());
@@ -205,7 +226,8 @@ export function createFloatingFiltersFeature() {
                 passive: true,
             });
             ctx.regular_table.addStyleListener?.(onDraw);
-            rebuild();
+            // After layout settles (absolute→relative), rebuild widths
+            requestAnimationFrame(() => rebuild());
         },
         syncFromConfig() {
             rebuild();
@@ -222,6 +244,7 @@ export function createFloatingFiltersFeature() {
                 ctx.regular_table.removeEventListener("scroll", onScroll);
             }
             clearBand();
+            track = null;
             ctx = null;
         },
     };
