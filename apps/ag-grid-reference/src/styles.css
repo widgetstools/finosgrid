@@ -1,0 +1,72 @@
+html,
+body,
+#root {
+  margin: 0;
+  height: 100%;
+  font-family: "IBM Plex Sans", -apple-system, BlinkMacSystemFont, "Segoe UI",
+    Roboto, sans-serif;
+}
+
+.app {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  background: #eef1f3;
+}
+
+.app__bar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 10px 14px;
+  background: #f5f7f7;
+  border-bottom: 1px solid #dde2e6;
+}
+
+.app__meta {
+  margin-left: 10px;
+  color: #51575d;
+  font-size: 12px;
+}
+
+.app__actions {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+}
+
+.app__actions button,
+.app__link {
+  height: 28px;
+  padding: 0 10px;
+  border: 1px solid #bac0c6;
+  border-radius: 2px;
+  background: #fff;
+  color: #181d1f;
+  font-size: 12px;
+  text-decoration: none;
+  display: inline-flex;
+  align-items: center;
+  cursor: pointer;
+}
+
+.app__actions button:hover,
+.app__link:hover {
+  border-color: #2196f3;
+  color: #2196f3;
+}
+
+.app__grid {
+  flex: 1;
+  min-height: 0;
+  padding: 8px;
+}
+
+.ag-cell-profit-neg {
+  color: #8b1e1e;
+}
+
+.ag-cell-profit-pos {
+  color: #0b6e4f;
+}

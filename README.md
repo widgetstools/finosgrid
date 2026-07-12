@@ -17,17 +17,19 @@ Uses Perspective’s compute engine and viewport rendering unchanged. This proje
 | Path | Package | Role |
 |---|---|---|
 | `packages/datagrid` | `@widgetstools/finosgrid` | Datagrid plugin (drop-in for `perspective-viewer`) |
-| `apps/ag-chrome-demo` | `ag-chrome-demo` | Vite demo |
+| `apps/ag-chrome-demo` | `ag-chrome-demo` | finosgrid demo (`:5180`) |
+| `apps/ag-grid-reference` | `ag-grid-reference` | **AG Grid Enterprise v36** parity reference (`:5181`) |
 
 ## Quick start
 
 ```bash
 npm install
 npm run build
-npm start
+npm start          # finosgrid demo → http://localhost:5180/
+npm run demo:ag    # AG Grid reference → http://localhost:5181/
 ```
 
-Demo: [http://localhost:5180/](http://localhost:5180/)
+Parity research: [docs/ag-parity/](docs/ag-parity/README.md)
 
 ## Usage
 

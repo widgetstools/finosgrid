@@ -6,6 +6,7 @@ alwaysApply: true
 # AG Grid version (finosgrid)
 
 - **Target AG Grid version is v35+** — not v33.
+- Reference app uses **AG Grid Enterprise** (Set Filter, pivot, **Columns tool panel**, etc.).
 - Never use deprecated AG Grid APIs, types, options, or data structures from older majors.
 - Before any AG Grid reference app work, docs lookup, or finosgrid parity implementation, use **AG Grid 35+** documentation.
 
@@ -13,11 +14,11 @@ alwaysApply: true
 
 For each feature to port into `@widgetstools/finosgrid`:
 
-1. Implement it in an AG Grid **v35+** reference app (`apps/ag-grid-reference`).
+1. Implement it in an AG Grid **Enterprise v35+** reference app (`apps/ag-grid-reference`).
 2. Research AG Grid 35+ docs for API details and use cases.
 3. Capture screenshots of the correct look/behavior into `docs/ag-parity/<feature>/`.
 4. Only then implement the matching chrome/behavior in finosgrid and compare side-by-side.
 
 ## Docs
 
-Prefer current AG Grid React docs for v35+ (column definitions, filtering, floating filters, row grouping, theming, etc.) — do not rely on v33-era guidance from global rules when it conflicts with this project rule.
+Prefer current AG Grid React docs for v35+ (column definitions, filtering, floating filters, side bar / columns tool panel, row grouping, theming, etc.) — do not rely on v33-era guidance from global rules when it conflicts with this project rule.
