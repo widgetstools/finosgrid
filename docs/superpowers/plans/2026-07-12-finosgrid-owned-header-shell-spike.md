@@ -69,11 +69,11 @@ EOF
 - Create: `packages/datagrid/src/js/shell/header_style.js`
 - Create: `packages/datagrid/test/js/shell/header_style.spec.js`
 
-- [ ] **Step 1: Failing tests** — map `HeaderStyle` to inline style / CSS variables, including per-side borders (`border-top-width`, etc.) and `visible: false` ⇒ `border-*-style: none` or width 0
+- [x] **Step 1: Failing tests** — map `HeaderStyle` to inline style / CSS variables, including per-side borders (`border-top-width`, etc.) and `visible: false` ⇒ `border-*-style: none` or width 0
 
-- [ ] **Step 2: Implement `applyHeaderStyle(el, style)`**
+- [x] **Step 2: Implement `applyHeaderStyle(el, style)`**
 
-- [ ] **Step 3: Tests green; commit**
+- [x] **Step 3: Tests green; commit**
 
 ```bash
 git commit -m "$(cat <<'EOF'

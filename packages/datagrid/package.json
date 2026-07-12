@@ -24,7 +24,7 @@
   "scripts": {
     "build": "node ./build.mjs",
     "clean": "rm -rf dist",
-    "test": "node --test test/js/chrome_phase1.spec.js test/js/shell/column_tree.spec.js"
+    "test": "node --test test/js/chrome_phase1.spec.js test/js/shell/column_tree.spec.js test/js/shell/header_style.spec.js"
   },
   "publishConfig": {
     "access": "public"
