@@ -187,6 +187,30 @@ export class HTMLPerspectiveViewerDatagridPluginElement extends HTMLElement {
         return restore.call(this, token, columns_config);
     }
 
+    /**
+     * AG chrome helpers (Phase 1+2)
+     */
+    get chrome() {
+        return this._chrome;
+    }
+
+    /**
+     * @param {Array<{headerName: string, children: string[]}>} groups
+     */
+    setColumnGroups(groups) {
+        this._chrome?.getFeature?.("columnGroups")?.setGroups?.(groups);
+    }
+
+    /**
+     * @param {string} column
+     * @param {Array} rules
+     */
+    setConditionalFormatting(column, rules) {
+        this._chrome
+            ?.getFeature?.("conditionalFormatting")
+            ?.setRules?.(column, rules);
+    }
+
     async restyle(view) {
         await this.draw(view);
     }

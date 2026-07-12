@@ -3,4 +3,7 @@
 *.log
 node_modules/
 
-# Keep perspective's own ignore rules for nested paths
+# Demo / local build artifacts (datagrid dist is rebuilt by demo)
+perspective/packages/perspective-viewer-datagrid/dist/
+apps/ag-chrome-demo/node_modules/
+apps/ag-chrome-demo/dist/

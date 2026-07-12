@@ -1,0 +1,48 @@
+html,
+body {
+  margin: 0;
+  height: 100%;
+  font-family: "IBM Plex Sans", -apple-system, BlinkMacSystemFont, "Segoe UI",
+    Roboto, sans-serif;
+  background: #eef1f3;
+  color: #181d1f;
+}
+
+#toolbar {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 10px;
+  padding: 10px 14px;
+  background: #f5f7f7;
+  border-bottom: 1px solid #dde2e6;
+}
+
+#toolbar .hint {
+  color: #51575d;
+  font-size: 12px;
+}
+
+#toolbar button {
+  height: 28px;
+  padding: 0 10px;
+  border: 1px solid #bac0c6;
+  border-radius: 2px;
+  background: #fff;
+  cursor: pointer;
+  font-size: 12px;
+}
+
+#toolbar button:hover {
+  border-color: #2196f3;
+  color: #2196f3;
+}
+
+#grid {
+  height: calc(100% - 49px);
+}
+
+perspective-viewer {
+  width: 100%;
+  height: 100%;
+}
