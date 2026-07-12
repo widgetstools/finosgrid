@@ -15,6 +15,14 @@ import {
     extractRowGroupConfig,
     filterDisplayLeaves,
 } from "./row_grouping.js";
+import {
+    SELECTION_COL_ID,
+    normalizeRowSelection,
+    normalizeCellSelection,
+    wantsSelectionColumn,
+} from "./selection_options.js";
+import { createRowSelectionController } from "./row_selection.js";
+import { createCellSelectionController } from "./cell_selection.js";
 
 /**
  * @typedef {import('./ag_types.js').GridOptions} GridOptions
@@ -90,6 +98,100 @@ export function createGrid(eGridDiv, gridOptions = {}) {
     const usesEngine =
         typeof options.loadColumns === "function" || !!options.table;
 
+    /** @type {ReturnType<typeof normalizeRowSelection>} */
+    let rowSelectionOpts = normalizeRowSelection(options.rowSelection);
+    /** @type {ReturnType<typeof normalizeCellSelection>} */
+    let cellSelectionOpts = normalizeCellSelection(
+        options.cellSelection,
+        options.enableRangeSelection,
+    );
+
+    /** @type {any[]} */
+    let displayedRowNodes = [];
+
+    const rowSelection = createRowSelectionController({
+        getOptions: () => rowSelectionOpts,
+        getRowNodes: () => displayedRowNodes,
+        onRowSelected(e) {
+            options.onRowSelected?.({ api, node: e.node, type: "rowSelected" });
+            body.refreshSelectionPaint?.();
+        },
+        onSelectionChanged(e) {
+            options.onSelectionChanged?.({
+                api,
+                selectedNodes: e.selectedNodes,
+                source: e.source,
+                type: "selectionChanged",
+            });
+            body.refreshSelectionPaint?.();
+        },
+    });
+
+    const cellSelection = createCellSelectionController({
+        getOptions: () => cellSelectionOpts,
+        onCellSelectionChanged(e) {
+            options.onCellSelectionChanged?.({
+                api,
+                cellRanges: e.cellRanges,
+                type: "cellSelectionChanged",
+            });
+            body.refreshSelectionPaint?.();
+        },
+        onCellSelectionDeleteStart(e) {
+            options.onCellSelectionDeleteStart?.({
+                api,
+                ...e,
+                type: "cellSelectionDeleteStart",
+            });
+        },
+        onCellSelectionDeleteEnd(e) {
+            options.onCellSelectionDeleteEnd?.({
+                api,
+                ...e,
+                type: "cellSelectionDeleteEnd",
+            });
+        },
+    });
+
+    function syncSelectionColumnState() {
+        if (!wantsSelectionColumn(rowSelectionOpts)) return;
+        columnState.seedFromDefs([
+            {
+                field: SELECTION_COL_ID,
+                colId: SELECTION_COL_ID,
+                width: 48,
+                pinned: "left",
+                resizable: false,
+                sortable: false,
+                filter: false,
+                floatingFilter: false,
+                headerName: "",
+            },
+        ]);
+        columnState.setWidth(SELECTION_COL_ID, 48);
+        columnState.setPin(SELECTION_COL_ID, "left");
+    }
+
+    /**
+     * Rebuild lightweight RowNode stubs for the current displayed row count.
+     * @param {number} count
+     * @param {any[]} [rowDataSnapshot]
+     */
+    function syncDisplayedRowNodes(count, rowDataSnapshot) {
+        const rows = rowDataSnapshot || options.rowData || [];
+        displayedRowNodes = [];
+        for (let i = 0; i < count; i++) {
+            displayedRowNodes.push({
+                id: String(i),
+                rowIndex: i,
+                data: rows[i] ?? null,
+                group: false,
+                level: 0,
+            });
+        }
+        rowSelection.attachNodes(displayedRowNodes);
+    }
+
     /**
      * @template T
      * @param {() => Promise<T>|T} fn
@@ -123,6 +225,9 @@ export function createGrid(eGridDiv, gridOptions = {}) {
         onRowGroupOpened(info) {
             options.onRowGroupOpened?.({ api, ...info });
         },
+        onDisplayedRowCount(count) {
+            syncDisplayedRowNodes(count, options.rowData);
+        },
         getTable: () => options.table,
         getSort: () => toPerspectiveSort(columnState),
         getFilter: () => toPerspectiveFilter(columnState),
@@ -130,7 +235,13 @@ export function createGrid(eGridDiv, gridOptions = {}) {
         suppressGroupRowsSticky: options.suppressGroupRowsSticky === true,
         groupTotalRow: options.groupTotalRow ?? "bottom",
         grandTotalRow: options.grandTotalRow ?? "bottom",
+        getRowSelection: () => rowSelectionOpts,
+        getCellSelection: () => cellSelectionOpts,
+        rowSelection,
+        cellSelection,
     });
+
+    syncSelectionColumnState();
 
     function getRowGroupConfig() {
         return extractRowGroupConfig({
@@ -163,15 +274,37 @@ export function createGrid(eGridDiv, gridOptions = {}) {
             hideGroupedColumns: options.groupHideColumns === true,
             groupBy: cfg.groupBy,
         });
-        if (!cfg.enabled || cfg.groupDisplayType === "custom") {
-            return leaves;
+        /** @type {any[]} */
+        let defs =
+            !cfg.enabled || cfg.groupDisplayType === "custom"
+                ? leaves.slice()
+                : [cfg.autoGroupColumnDef, ...leaves];
+        if (wantsSelectionColumn(rowSelectionOpts)) {
+            defs = [
+                {
+                    field: SELECTION_COL_ID,
+                    colId: SELECTION_COL_ID,
+                    headerName: "",
+                    width: 48,
+                    minWidth: 48,
+                    maxWidth: 52,
+                    pinned: "left",
+                    resizable: false,
+                    sortable: false,
+                    filter: false,
+                    floatingFilter: false,
+                    suppressMovable: true,
+                },
+                ...defs,
+            ];
         }
-        // singleColumn (default): prepend AG auto-group column
-        return [cfg.autoGroupColumnDef, ...leaves];
+        return defs;
     }
 
     function viewFieldsFromDisplay(displayFields) {
-        return displayFields.filter((f) => f !== AUTO_GROUP_COL_ID);
+        return displayFields.filter(
+            (f) => f !== AUTO_GROUP_COL_ID && f !== SELECTION_COL_ID,
+        );
     }
 
     function groupingForView() {
@@ -240,6 +373,22 @@ export function createGrid(eGridDiv, gridOptions = {}) {
 
     root.append(header.el, body.el);
     eGridDiv.appendChild(root);
+
+    // Column selection via header leaf click (AG enableColumnSelection)
+    header.el.addEventListener("click", (e) => {
+        const opts = cellSelectionOpts;
+        if (!opts?.enabled || !opts.enableColumnSelection) return;
+        if (e.target?.closest?.("button,input,a,.fg-shell__resize")) return;
+        const leaf = e.target?.closest?.(".fg-shell__leaf-cell");
+        if (!leaf?.dataset?.field) return;
+        const colId = leaf.dataset.field;
+        if (colId === SELECTION_COL_ID || colId === AUTO_GROUP_COL_ID) return;
+        cellSelection.selectColumn(colId, {
+            rowCount: displayedRowNodes.length || 1,
+            additive: !!(e.ctrlKey || e.metaKey),
+        });
+        body.refreshSelectionPaint?.();
+    });
 
     function layoutOpts(fields) {
         return {
@@ -445,6 +594,28 @@ export function createGrid(eGridDiv, gridOptions = {}) {
                 body.setGrandTotalRow?.(value);
                 return;
             }
+            if (key === "rowSelection") {
+                rowSelectionOpts = normalizeRowSelection(value);
+                syncSelectionColumnState();
+                void refresh();
+                return;
+            }
+            if (key === "cellSelection" || key === "enableRangeSelection") {
+                if (key === "enableRangeSelection") {
+                    options.enableRangeSelection = value;
+                    cellSelectionOpts = normalizeCellSelection(
+                        options.cellSelection,
+                        value,
+                    );
+                } else {
+                    cellSelectionOpts = normalizeCellSelection(
+                        value,
+                        options.enableRangeSelection,
+                    );
+                }
+                body.refreshSelectionPaint?.();
+                return;
+            }
             if (key === "rowData" || key === "loadColumns" || key === "table") {
                 void refresh();
                 return;
@@ -576,6 +747,69 @@ export function createGrid(eGridDiv, gridOptions = {}) {
 
         refreshCells() {
             return refresh();
+        },
+
+        getSelectedRows() {
+            return rowSelection.getSelectedRows();
+        },
+
+        getSelectedNodes() {
+            return rowSelection.getSelectedNodes();
+        },
+
+        setNodesSelected(params) {
+            rowSelection.setNodesSelected(params || { nodes: [], newValue: false });
+        },
+
+        selectAll(mode) {
+            rowSelection.selectAll(mode);
+        },
+
+        deselectAll(mode) {
+            rowSelection.deselectAll(mode);
+        },
+
+        getCellRanges() {
+            return cellSelection.getCellRanges();
+        },
+
+        addCellRange(range) {
+            if (!range) return;
+            // Internal shape already has startRow/endRow
+            if (range.startRow) {
+                cellSelection.addCellRange(range);
+                return;
+            }
+            /** @type {string[]} */
+            let cols = Array.isArray(range.columns) ? range.columns.slice() : [];
+            if (
+                !cols.length &&
+                (range.columnStart != null || range.columnEnd != null)
+            ) {
+                const display = header.getLeafFields();
+                const i0 = display.indexOf(
+                    range.columnStart ?? range.columnEnd,
+                );
+                const i1 = display.indexOf(
+                    range.columnEnd ?? range.columnStart,
+                );
+                if (i0 >= 0 && i1 >= 0) {
+                    const lo = Math.min(i0, i1);
+                    const hi = Math.max(i0, i1);
+                    cols = display.slice(lo, hi + 1);
+                }
+            }
+            cellSelection.addCellRange({
+                startRow: { rowIndex: range.rowStartIndex ?? 0 },
+                endRow: {
+                    rowIndex: range.rowEndIndex ?? range.rowStartIndex ?? 0,
+                },
+                columns: cols,
+            });
+        },
+
+        clearCellSelection() {
+            cellSelection.clearCellSelection();
         },
 
         async destroy() {

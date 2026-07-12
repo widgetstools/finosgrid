@@ -87,6 +87,15 @@ function withRowGrouping(defs) {
             groupDefaultExpanded: 1,
             groupTotalRow: "bottom",
             grandTotalRow: "bottom",
+            rowSelection: {
+                mode: "multiRow",
+                checkboxes: true,
+                headerCheckbox: true,
+                enableClickSelection: true,
+            },
+            cellSelection: {
+                handle: { mode: "fill" },
+            },
             autoGroupColumnDef: {
                 headerName: "Desk / Sector",
                 width: 240,
@@ -100,9 +109,14 @@ function withRowGrouping(defs) {
                 width: 110,
             },
             floatingFilter: true,
+            onSelectionChanged({ selectedNodes }) {
+                setStatus(
+                    `Selected ${selectedNodes.length} row(s) · grouped desk→sector · ${leafCount} fields`,
+                );
+            },
             onGridReady() {
                 setStatus(
-                    `Grid ready · grouped desk→sector · expand sector to leaf rows · ${leafCount} fields · waiting for snapshot…`,
+                    `Grid ready · multi-row + cell selection · grouped desk→sector · ${leafCount} fields · waiting for snapshot…`,
                 );
             },
         });

@@ -103,6 +103,45 @@ export interface GridOptions {
      * @default 'bottom'
      */
     grandTotalRow?: "top" | "bottom" | null;
+    /**
+     * AG RowSelectionModule — legacy `'single'|'multiple'` or modern object.
+     * @see https://www.ag-grid.com/javascript-data-grid/row-selection/
+     */
+    rowSelection?:
+        | "single"
+        | "multiple"
+        | "singleRow"
+        | "multiRow"
+        | boolean
+        | {
+              mode: "singleRow" | "multiRow";
+              checkboxes?: boolean;
+              checkboxLocation?: "selectionColumn" | "autoGroupColumn";
+              headerCheckbox?: boolean;
+              selectAll?: "all" | "filtered" | "currentPage";
+              enableClickSelection?: boolean | "enableSelection" | "enableDeselection";
+              enableSelectionWithoutKeys?: boolean;
+              isRowSelectable?: (node: any) => boolean;
+              hideDisabledCheckboxes?: boolean;
+              groupSelects?: "self" | "descendants" | "filteredDescendants";
+              copySelectedRows?: boolean;
+              ctrlASelectsRows?: boolean;
+              masterSelects?: "self" | "detail";
+          };
+    /**
+     * AG CellSelectionModule (Enterprise) — `true` or options object.
+     * Legacy: `enableRangeSelection: true`.
+     */
+    cellSelection?:
+        | boolean
+        | {
+              suppressMultiRanges?: boolean;
+              enableHeaderHighlight?: boolean;
+              enableColumnSelection?: boolean;
+              handle?: { mode: "fill" | "range"; [k: string]: unknown };
+          };
+    /** @deprecated Use `cellSelection`. */
+    enableRangeSelection?: boolean;
     /** finosgrid extension: Perspective table — sort/filter/columns via View */
     table?: {
         view: (config: Record<string, unknown>) => Promise<{
@@ -137,6 +176,20 @@ export interface GridOptions {
         expanded: boolean;
         detail?: boolean;
     }) => void;
+    onRowSelected?: (event: { api: GridApi; node: any; type: string }) => void;
+    onSelectionChanged?: (event: {
+        api: GridApi;
+        selectedNodes: any[];
+        source?: string;
+        type: string;
+    }) => void;
+    onCellSelectionChanged?: (event: {
+        api: GridApi;
+        cellRanges: any[];
+        type: string;
+    }) => void;
+    onCellSelectionDeleteStart?: (event: Record<string, unknown>) => void;
+    onCellSelectionDeleteEnd?: (event: Record<string, unknown>) => void;
     onSortChanged?: (event: { api: GridApi }) => void;
     onFilterChanged?: (event: { api: GridApi }) => void;
     onColumnPinned?: (event: { api: GridApi }) => void;
@@ -174,6 +227,20 @@ export interface GridApi {
     getRowGroupColumns(): string[];
     setColumnAggFunc(key: string | { field?: string }, aggFunc: string | null): void;
     refreshCells(): Promise<void>;
+    getSelectedRows(): any[];
+    getSelectedNodes(): any[];
+    setNodesSelected(params: { nodes: any[]; newValue: boolean }): void;
+    selectAll(mode?: string): void;
+    deselectAll(mode?: string): void;
+    getCellRanges(): any[];
+    addCellRange(range: {
+        rowStartIndex?: number;
+        rowEndIndex?: number;
+        columnStart?: string;
+        columnEnd?: string;
+        columns?: string[];
+    }): void;
+    clearCellSelection(): void;
     destroy(): void | Promise<void>;
 }
 
