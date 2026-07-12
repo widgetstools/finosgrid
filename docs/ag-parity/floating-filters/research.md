@@ -27,7 +27,10 @@ Set columns use `filter: "agSetColumnFilter"`; number columns `agNumberColumnFil
 
 ## finosgrid parity checklist
 
-- [ ] Dedicated band under headers — **must not overlap first data row**
+- [x] No overlap with first data row (layout fix on chrome band)
+- [ ] Band sits **under** leaf column headers (shell ADR — not above `thead`)
 - [ ] Widths sync with columns on scroll/resize
 - [ ] Debounced apply to View `filter`
 - [ ] Visual match to Quartz floating inputs (height, border, padding)
+
+See [Shell ADR](../../superpowers/specs/2026-07-12-finosgrid-shell-architecture-adr.md).
