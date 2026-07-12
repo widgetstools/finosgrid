@@ -68,6 +68,14 @@ export {
 export { createRowSelectionController } from "./row_selection.js";
 export { createCellSelectionController } from "./cell_selection.js";
 export {
+    createStatusBar,
+    coerceNumeric,
+    computeAggregations,
+    formatStatusValue,
+    resolveCountLabels,
+    PROVIDED_STATUS_PANELS,
+} from "./status_bar.js";
+export {
     createContextMenuController,
     resolveMenuItems,
     defaultColumnMenuItems,

@@ -19,6 +19,7 @@ Reference app: `apps/ag-grid-reference` (Enterprise **v36**, Quartz).
 | Tree data | [tree-data](./tree-data/research.md) | pending | planned |
 | Master detail | [master-detail](./master-detail/research.md) | pending | planned |
 | Context / column menus | [context-menu](./context-menu/research.md) | shell | partial (header + cell) |
+| Status bar | [status-bar](./status-bar/research.md) | shell | done (counts + aggregation + custom) |
 | Conditional formatting | [conditional-formatting](./conditional-formatting/research.md) | pending | partial |
 | Columns tool panel | [columns-panel](./columns-panel/research.md) | pending | not started |
 | Pivot | [pivot](./pivot/research.md) | pending | chrome only |
