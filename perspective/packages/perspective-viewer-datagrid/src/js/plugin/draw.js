@@ -63,4 +63,6 @@ export async function draw(view) {
         this.model._config.group_by.length > 0 ||
             this.model._config.split_by.length > 0,
     );
+
+    this._chrome?.syncFromConfig?.(this.model._config);
 }

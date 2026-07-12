@@ -17,6 +17,7 @@ import { cell_style_string } from "./string.js";
 import { cell_style_datetime } from "./datetime.js";
 import { cell_style_boolean } from "./boolean.js";
 import { cell_style_row_header } from "./row_header.js";
+import { applyConditionalFormatting } from "./conditional.js";
 
 function get_psp_type(metadata) {
     if (metadata.x >= 0) {
@@ -102,6 +103,17 @@ export function table_cell_style_listener(regularTable, viewer) {
                 "psp-color-mode-bar",
                 plugin?.number_fg_mode === "bar" && is_numeric,
             );
+
+            // AG chrome conditional formatting (post type styles)
+            if (!is_th && plugin?.conditional_formatting?.length) {
+                applyConditionalFormatting(
+                    td,
+                    metadata.user,
+                    plugin.conditional_formatting,
+                );
+            } else {
+                td.classList.remove("psp-ag-conditional");
+            }
         }
     }
 }

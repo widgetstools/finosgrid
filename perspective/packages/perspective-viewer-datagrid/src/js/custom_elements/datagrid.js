@@ -126,15 +126,12 @@ export class HTMLPerspectiveViewerDatagridPluginElement extends HTMLElement {
         } else if (this.model._config.split_by?.length > 0) {
             const dimensions = await view.dimensions();
             this.model._num_rows = dimensions.num_view_rows;
-            // if (this.model._column_paths.length !== dimensions.num_view_columns) {
-            // await this.draw(view);
-            // } else {
             await this.regular_table.draw();
-            // }
         } else {
             this.model._num_rows = await view.num_rows();
             await this.regular_table.draw();
         }
+        this._chrome?.syncFromConfig?.(this.model?._config);
     }
 
     async render(viewport) {
@@ -195,6 +192,8 @@ export class HTMLPerspectiveViewerDatagridPluginElement extends HTMLElement {
     }
 
     delete() {
+        this._chrome?.destroy?.();
+        this._chrome = undefined;
         this._toolbar = undefined;
         if (this.regular_table.table_model) {
             this.regular_table._resetAutoSize();

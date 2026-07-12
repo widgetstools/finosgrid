@@ -37,6 +37,10 @@ export function save() {
                 column_size_overrides[col];
         }
 
+        if (this._chrome) {
+            token.chrome = this._chrome.save();
+        }
+
         return JSON.parse(JSON.stringify(token));
     }
     return {};

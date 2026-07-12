@@ -34,6 +34,7 @@ import { createModel } from "../model/create.js";
 import { dispatch_click_listener } from "../event_handlers/dispatch_click";
 
 import { addAreaMouseSelection } from "../event_handlers/select_region.js";
+import { createDefaultChromeHost } from "../chrome/index.js";
 
 /**
  * Lazy initialize this plugin with various listeners.
@@ -59,6 +60,12 @@ export async function activate(view) {
 
         if (!this.model) {
             return;
+        }
+
+        // AG chrome feature host (theme, filters, conditional formatting)
+        if (!this._chrome) {
+            this._chrome = createDefaultChromeHost(this);
+            this._chrome.mount();
         }
 
         addAreaMouseSelection(this, this.regular_table, {

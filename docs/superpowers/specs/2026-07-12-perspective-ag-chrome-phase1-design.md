@@ -1,7 +1,7 @@
 # Perspective Datagrid AG Chrome — Phase 1 Design
 
 **Date:** 2026-07-12  
-**Status:** Approved (design); pending user review of this spec  
+**Status:** Approved; Phase 1 implementation in progress  
 **Package:** `@finos/perspective-viewer-datagrid`  
 **Checkout:** `/Users/develop/wfh/finosgrid/perspective`  
 **Remote:** https://github.com/widgetstools/finosgrid

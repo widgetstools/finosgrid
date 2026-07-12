@@ -79,4 +79,11 @@ export function restore(token, columns) {
     const datagrid = this.regular_table;
     restore_column_size_overrides.call(this, overrides, true);
     datagrid[PRIVATE_PLUGIN_SYMBOL] = styles;
+
+    // Merge conditional_formatting from columns into styles bag (already copied
+    // via ...controls above when present on columns_config).
+
+    if (token.chrome && this._chrome) {
+        this._chrome.restore(token.chrome, columns);
+    }
 }

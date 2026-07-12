@@ -1,0 +1,77 @@
+/* AG Grid Quartz–inspired tokens for Perspective datagrid chrome.
+ * Applied when [data-ag-theme="quartz"] is set on the chrome root.
+ */
+
+.psp-ag-chrome {
+    display: flex;
+    flex-direction: column;
+    width: 100%;
+    height: 100%;
+    min-height: 0;
+    position: relative;
+    font-family: "IBM Plex Sans", -apple-system, BlinkMacSystemFont, "Segoe UI",
+        Roboto, Oxygen-Sans, Ubuntu, Cantarell, "Helvetica Neue", sans-serif;
+    font-size: 13px;
+}
+
+.psp-ag-chrome regular-table {
+    flex: 1;
+    min-height: 0;
+}
+
+.psp-ag-chrome[data-ag-theme="quartz"],
+.psp-ag-chrome[data-ag-theme="quartz"] regular-table {
+    --ag-chrome-header-bg: #f5f7f7;
+    --ag-chrome-header-fg: #181d1f;
+    --ag-chrome-border: #dde2e6;
+    --ag-chrome-row-hover: #f5f7f7;
+    --ag-chrome-selected: #b7dbf7;
+    --ag-chrome-input-bg: #ffffff;
+    --ag-chrome-input-border: #bac0c6;
+    --ag-chrome-popup-bg: #ffffff;
+    --ag-chrome-popup-shadow: 0 1px 4px rgba(0, 0, 0, 0.16);
+    --ag-chrome-accent: #2196f3;
+    --ag-chrome-icon: #51575d;
+    --ag-chrome-spacing: 4px;
+
+    /* Map onto Perspective / regular-table vars where possible */
+    --plugin--background: #ffffff;
+    --rt-pos-cell--color: #13653f;
+    --inactive--color: #8b9298;
+}
+
+/* Dark — when viewer is in dark mode */
+:host-context(perspective-viewer.dark) .psp-ag-chrome[data-ag-theme="quartz"],
+perspective-viewer.dark .psp-ag-chrome[data-ag-theme="quartz"],
+.psp-ag-chrome[data-ag-theme="quartz-dark"] {
+    --ag-chrome-header-bg: #182230;
+    --ag-chrome-header-fg: #e8eaed;
+    --ag-chrome-border: #2d3744;
+    --ag-chrome-row-hover: #1f2a38;
+    --ag-chrome-selected: #1a3a52;
+    --ag-chrome-input-bg: #141c27;
+    --ag-chrome-input-border: #3d4a5c;
+    --ag-chrome-popup-bg: #1c2735;
+    --ag-chrome-popup-shadow: 0 1px 4px rgba(0, 0, 0, 0.45);
+    --ag-chrome-accent: #4ea1f3;
+    --ag-chrome-icon: #a8b0ba;
+    --plugin--background: #141c27;
+}
+
+.psp-ag-chrome[data-ag-theme="quartz"] regular-table table thead th,
+.psp-ag-chrome[data-ag-theme="quartz"] regular-table table thead td {
+    background-color: var(--ag-chrome-header-bg) !important;
+    color: var(--ag-chrome-header-fg);
+    border-color: var(--ag-chrome-border);
+    font-weight: 600;
+}
+
+.psp-ag-chrome[data-ag-theme="quartz"] regular-table table tbody tr:hover td,
+.psp-ag-chrome[data-ag-theme="quartz"] regular-table table tbody tr:hover th {
+    background-color: var(--ag-chrome-row-hover);
+}
+
+.psp-ag-chrome[data-ag-theme="quartz"] regular-table table td,
+.psp-ag-chrome[data-ag-theme="quartz"] regular-table table th {
+    border-color: var(--ag-chrome-border);
+}

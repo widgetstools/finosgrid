@@ -60,6 +60,9 @@ async function compile_css() {
     add(builder1, "./row-hover.less");
     add(builder1, "./sub-cell-scroll.less");
     add(builder1, "./scrollbar.less");
+    add(builder1, "./themes/quartz.less");
+    add(builder1, "./chrome/floating_filters.less");
+    add(builder1, "./chrome/set_filter.less");
     add(builder1, "./regular_table.less");
     fs.writeFileSync(
         "dist/css/perspective-viewer-datagrid.css",
