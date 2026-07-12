@@ -38,10 +38,21 @@
 .fg-shell__filter-row {
     display: flex;
     flex: 0 0 auto;
-    overflow: hidden;
+    overflow-x: auto;
+    overflow-y: hidden;
     min-height: 28px;
     border-bottom: 1px solid #dde2e6;
     box-sizing: border-box;
+    /* Programmatic scroll sync with body — hide native bars */
+    scrollbar-width: none;
+}
+
+.fg-shell__group-row::-webkit-scrollbar,
+.fg-shell__leaf-row::-webkit-scrollbar,
+.fg-shell__filter-row::-webkit-scrollbar {
+    display: none;
+    width: 0;
+    height: 0;
 }
 
 .fg-shell__filter-row {
@@ -53,7 +64,7 @@
     display: flex;
     align-items: stretch;
     height: 100%;
-    will-change: transform;
+    min-width: max-content;
 }
 
 .fg-shell__group-cell,
@@ -66,37 +77,59 @@
     display: flex;
     align-items: center;
     padding: 0 8px;
+    position: relative;
 }
 
 .fg-shell__group-cell {
     font-weight: 600;
-    gap: 6px;
+    gap: 4px;
     background: #eef1f2;
+    justify-content: flex-start;
 }
 
 .fg-shell__group-toggle {
     flex: 0 0 auto;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
     width: 18px;
     height: 18px;
+    margin-left: 2px;
     padding: 0;
-    border: 1px solid #bac0c6;
+    border: 1px solid transparent;
     border-radius: 2px;
-    background: #fff;
+    background: transparent;
     color: #51575d;
-    font-size: 9px;
-    line-height: 1;
     cursor: pointer;
 }
 
 .fg-shell__group-toggle:hover {
-    border-color: #2196f3;
+    border-color: #bac0c6;
+    background: #fff;
     color: #2196f3;
+}
+
+.fg-shell__group-toggle svg {
+    display: block;
 }
 
 .fg-shell__group-label {
     overflow: hidden;
     text-overflow: ellipsis;
     white-space: nowrap;
+    flex: 1 1 auto;
+    min-width: 0;
+    /* AG sticky group label: stay visible while the group cell scrolls */
+    position: sticky;
+    left: 0;
+    z-index: 1;
+    background: inherit;
+    padding-right: 2px;
+}
+
+.fg-shell__group-cell--no-sticky-label .fg-shell__group-label {
+    position: static;
+    left: auto !important;
 }
 
 .fg-shell__group-pad {
@@ -106,6 +139,91 @@
 .fg-shell__leaf-cell {
     font-weight: 600;
     background: #f5f7f7;
+    gap: 2px;
+    padding: 0 6px 0 4px;
+    user-select: none;
+}
+
+.fg-shell__leaf-cell.is-dragging {
+    opacity: 0.55;
+}
+
+.fg-shell__leaf-cell.is-drag-over {
+    box-shadow: inset 2px 0 0 #2196f3;
+}
+
+.fg-shell__leaf-grip {
+    flex: 0 0 auto;
+    display: inline-flex;
+    color: #9aa0a6;
+    cursor: grab;
+    opacity: 0.7;
+}
+
+.fg-shell__leaf-grip:hover {
+    color: #51575d;
+    opacity: 1;
+}
+
+.fg-shell__leaf-label {
+    flex: 1 1 auto;
+    min-width: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    padding: 0 2px;
+}
+
+.fg-shell__icon-btn {
+    flex: 0 0 auto;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 18px;
+    height: 18px;
+    padding: 0;
+    border: none;
+    border-radius: 2px;
+    background: transparent;
+    color: #51575d;
+    cursor: pointer;
+}
+
+.fg-shell__icon-btn:hover:not(:disabled) {
+    background: #e8ecee;
+    color: #181d1f;
+}
+
+.fg-shell__icon-btn:disabled {
+    opacity: 0.35;
+    cursor: default;
+}
+
+.fg-shell__icon-btn.is-muted {
+    color: #9aa0a6;
+}
+
+.fg-shell__icon-btn.is-active {
+    color: #2196f3;
+}
+
+.fg-shell__icon-btn svg {
+    display: block;
+}
+
+.fg-shell__resize-handle {
+    position: absolute;
+    top: 0;
+    right: -3px;
+    width: 8px;
+    height: 100%;
+    cursor: col-resize;
+    z-index: 6;
+}
+
+.fg-shell__resize-handle:hover,
+.fg-shell__resize-handle:active {
+    background: rgba(33, 150, 243, 0.35);
 }
 
 .fg-shell__filter-cell {
@@ -130,6 +248,75 @@
     border-color: #2196f3;
 }
 
+.fg-shell__pin-left,
+.fg-shell__pin-right {
+    position: sticky !important;
+    z-index: 5;
+    /* Opaque paint so scrolled columns never show through */
+    background-color: #f5f7f7 !important;
+    background-clip: border-box;
+    isolation: isolate;
+}
+
+.fg-shell__leaf-cell.fg-shell__pin-left,
+.fg-shell__leaf-cell.fg-shell__pin-right,
+.fg-shell__filter-cell.fg-shell__pin-left,
+.fg-shell__filter-cell.fg-shell__pin-right {
+    background-color: #f5f7f7 !important;
+}
+
+.fg-shell__pin-left {
+    /* Solid edge + soft shadow covers content sliding underneath */
+    box-shadow:
+        1px 0 0 #dde2e6,
+        6px 0 10px -4px rgba(24, 29, 31, 0.35);
+}
+
+.fg-shell__pin-right {
+    box-shadow:
+        -1px 0 0 #dde2e6,
+        -6px 0 10px -4px rgba(24, 29, 31, 0.35);
+}
+
+.fg-shell__menu {
+    position: fixed;
+    z-index: 10000;
+    min-width: 132px;
+    padding: 4px;
+    background: #fff;
+    border: 1px solid #dde2e6;
+    border-radius: 4px;
+    box-shadow: 0 4px 16px rgba(24, 29, 31, 0.12);
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+}
+
+.fg-shell__menu-item {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    width: 100%;
+    padding: 6px 8px;
+    border: none;
+    border-radius: 2px;
+    background: transparent;
+    font: inherit;
+    font-size: 12px;
+    color: #181d1f;
+    text-align: left;
+    cursor: pointer;
+}
+
+.fg-shell__menu-item:hover {
+    background: #eef1f2;
+}
+
+.fg-shell__menu-item.is-active {
+    background: #e3f2fd;
+    color: #1565c0;
+}
+
 .fg-shell__body {
     flex: 1 1 auto;
     min-height: 0;
@@ -137,29 +324,301 @@
     position: relative !important;
     margin: 0 !important;
     padding: 0 !important;
-    overflow: auto;
+    display: flex;
+    flex-direction: row;
+    align-items: stretch;
+    overflow: hidden;
+    background: #fff;
 }
 
-.fg-shell__body thead {
+.fg-shell__body-pane {
+    min-height: 0;
+    min-width: 0;
+    display: flex;
+    flex-direction: column;
+    position: relative;
+}
+
+.fg-shell__sticky-groups {
+    position: absolute;
+    left: 0;
+    right: 0;
+    z-index: 5;
+    overflow: hidden;
+    pointer-events: none;
+    background: #fff;
+}
+
+/* Collapse/expand from sticky headers (overlay otherwise ignores pointer) */
+.fg-shell__sticky-groups .fg-shell__tree-toggle {
+    pointer-events: auto;
+}
+
+/* AG `.ag-sticky-top`: group headers / top totals pin above scrolling leaves */
+.fg-shell__sticky-groups--top {
+    top: 0;
+    bottom: auto;
+    box-shadow: 0 2px 4px rgba(24, 29, 31, 0.12);
+    border-bottom: 1px solid #dde2e6;
+}
+
+/* AG `.ag-sticky-bottom`: bottom totals pin below scrolling leaves */
+.fg-shell__sticky-groups--bottom {
+    top: auto;
+    bottom: 0;
+    box-shadow: 0 -2px 4px rgba(24, 29, 31, 0.12);
+    border-top: 1px solid #dde2e6;
+}
+
+.fg-shell__sticky-groups__track {
+    display: flex;
+    flex-direction: column;
+    min-width: max-content;
+    will-change: transform;
+}
+
+/* Match normal body rows (same as `.fg-shell__body-rt td`) */
+.fg-shell__sticky-group-row {
+    display: flex;
+    flex-direction: row;
+    align-items: stretch;
+    min-height: 27px;
+    background: #fff;
+    border-bottom: 1px solid #dde2e6;
+}
+
+.fg-shell__sticky-groups--bottom .fg-shell__sticky-group-row {
+    border-bottom: none;
+    border-top: 1px solid #dde2e6;
+}
+
+.fg-shell__sticky-group-cell {
+    box-sizing: border-box;
+    border-right: 1px solid #dde2e6;
+    padding: 4px 8px;
+    display: flex;
+    align-items: center;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    font-size: 13px;
+    font-weight: 400;
+    font-style: normal;
+    color: #333;
+    background: #fff;
+}
+
+/* Sticky labels must match body group rows (not semi-bold) */
+.fg-shell__sticky-group-cell.fg-shell__tree-cell {
+    font-weight: 400;
+}
+
+.fg-shell__body-pane--left,
+.fg-shell__body-pane--right {
+    flex: 0 0 auto;
+    z-index: 2;
+    background: #fff;
+}
+
+.fg-shell__body-pane--left {
+    box-shadow: 6px 0 10px -4px rgba(24, 29, 31, 0.35);
+    border-right: 1px solid #dde2e6;
+}
+
+.fg-shell__body-pane--right {
+    box-shadow: -6px 0 10px -4px rgba(24, 29, 31, 0.35);
+    border-left: 1px solid #dde2e6;
+}
+
+.fg-shell__body-pane--center {
+    flex: 1 1 auto;
+    z-index: 1;
+}
+
+.fg-shell__body-rt {
+    flex: 1 1 auto;
+    min-height: 0;
+    width: 100%;
+    height: 100%;
+    position: relative !important;
+    margin: 0 !important;
+    padding: 0 !important;
+}
+
+/* Center pane: both-axis scroll + visible scrollbars */
+.fg-shell__body-rt--center {
+    overflow: scroll;
+    scrollbar-gutter: stable both-edges;
+    scrollbar-width: thin;
+    scrollbar-color: #9aa0a6 #eef1f2;
+}
+
+.fg-shell__body-rt--center::-webkit-scrollbar {
+    width: 12px;
+    height: 12px;
+    background: #eef1f2;
+}
+
+.fg-shell__body-rt--center::-webkit-scrollbar-track {
+    background: #eef1f2;
+    border-left: 1px solid #dde2e6;
+    border-top: 1px solid #dde2e6;
+}
+
+.fg-shell__body-rt--center::-webkit-scrollbar-thumb {
+    background: #9aa0a6;
+    border-radius: 6px;
+    border: 2px solid #eef1f2;
+    min-height: 40px;
+    min-width: 40px;
+}
+
+.fg-shell__body-rt--center::-webkit-scrollbar-thumb:hover {
+    background: #6b7178;
+}
+
+.fg-shell__body-rt--center::-webkit-scrollbar-corner {
+    background: #eef1f2;
+}
+
+/* Pin panes: vertical scroll only (synced); hide bars — center owns chrome */
+.fg-shell__body-rt--left,
+.fg-shell__body-rt--right {
+    overflow-x: hidden;
+    overflow-y: auto;
+    scrollbar-width: none;
+}
+
+.fg-shell__body-rt--left::-webkit-scrollbar,
+.fg-shell__body-rt--right::-webkit-scrollbar {
+    display: none;
+    width: 0;
+    height: 0;
+}
+
+.fg-shell__body-rt thead {
     display: none;
 }
 
-.fg-shell__body table {
+.fg-shell__body-rt table {
     border-collapse: separate;
     border-spacing: 0;
+    overflow: visible !important;
 }
 
-.fg-shell__body td,
-.fg-shell__body th {
+.fg-shell__body-rt table,
+.fg-shell__body-rt thead,
+.fg-shell__body-rt tbody,
+.fg-shell__body-rt tr {
+    transform: none !important;
+}
+
+.fg-shell__body-rt td,
+.fg-shell__body-rt th {
     border-right: 1px solid #dde2e6;
     border-bottom: 1px solid #dde2e6;
     padding: 4px 8px;
     font-size: 13px;
     white-space: nowrap;
     box-sizing: border-box;
-    min-width: 140px;
+    min-width: 60px;
+    background: #fff;
 }
 
-.fg-shell__body tbody tr:nth-child(even) td {
+.fg-shell__body-rt tbody tr:nth-child(even) td {
     background: #fafbfc;
+}
+
+.fg-shell__body-pane--left .fg-shell__body-rt td,
+.fg-shell__body-pane--right .fg-shell__body-rt td {
+    background-color: #fff;
+}
+
+.fg-shell__body-pane--left .fg-shell__body-rt tbody tr:nth-child(even) td,
+.fg-shell__body-pane--right .fg-shell__body-rt tbody tr:nth-child(even) td {
+    background-color: #fafbfc;
+}
+
+/* Realtime tick flash */
+.fg-shell__body-rt td.fg-shell__flash,
+.fg-shell__body-rt td.fg-shell__flash--up,
+.fg-shell__body-rt td.fg-shell__flash--down {
+    animation: fg-shell-flash 0.7s ease-out;
+}
+
+.fg-shell__body-rt td.fg-shell__flash {
+    animation-name: fg-shell-flash;
+}
+
+.fg-shell__body-rt td.fg-shell__flash--up {
+    animation-name: fg-shell-flash-up;
+}
+
+.fg-shell__body-rt td.fg-shell__flash--down {
+    animation-name: fg-shell-flash-down;
+}
+
+.fg-shell__tree-cell {
+    font-weight: 400;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.fg-shell__tree-cell--detail {
+    font-weight: 400;
+    color: #51575d;
+}
+
+.fg-shell__tree-toggle {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 16px;
+    height: 16px;
+    margin-right: 2px;
+    padding: 0;
+    border: 1px solid transparent;
+    border-radius: 2px;
+    background: transparent;
+    color: #51575d;
+    cursor: pointer;
+    vertical-align: middle;
+}
+
+.fg-shell__tree-toggle:hover {
+    border-color: #bac0c6;
+    background: #fff;
+    color: #2196f3;
+}
+
+.fg-shell__tree-toggle svg {
+    display: block;
+}
+
+@keyframes fg-shell-flash {
+    0% {
+        box-shadow: inset 0 0 0 999px rgba(255, 245, 157, 0.85);
+    }
+    100% {
+        box-shadow: none;
+    }
+}
+
+@keyframes fg-shell-flash-up {
+    0% {
+        box-shadow: inset 0 0 0 999px rgba(165, 214, 167, 0.85);
+    }
+    100% {
+        box-shadow: none;
+    }
+}
+
+@keyframes fg-shell-flash-down {
+    0% {
+        box-shadow: inset 0 0 0 999px rgba(239, 154, 154, 0.85);
+    }
+    100% {
+        box-shadow: none;
+    }
 }

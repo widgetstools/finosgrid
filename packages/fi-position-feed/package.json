@@ -1,0 +1,17 @@
+{
+  "name": "@widgetstools/fi-position-feed",
+  "version": "0.1.0",
+  "description": "Worker-backed nested JSON fixed-income position feed for finosgrid / Perspective",
+  "type": "module",
+  "license": "Apache-2.0",
+  "exports": {
+    ".": "./src/index.js"
+  },
+  "files": [
+    "src/**/*",
+    "README.md"
+  ],
+  "scripts": {
+    "test": "node --test test/*.spec.js"
+  }
+}

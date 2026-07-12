@@ -24,7 +24,11 @@ export default defineConfig({
             "@finos/perspective",
             "@finos/perspective-viewer",
             "@widgetstools/finosgrid",
+            "@widgetstools/fi-position-feed",
         ],
+    },
+    worker: {
+        format: "es",
     },
     assetsInclude: ["**/*.wasm"],
 });

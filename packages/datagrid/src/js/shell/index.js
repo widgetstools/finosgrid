@@ -14,7 +14,15 @@ export {
     computeHeaderLayout,
     maxGroupDepth,
     countVisibleLeavesInGroup,
+    groupPathToField,
+    groupRowsForOrderedLeaves,
+    isGroupExpandable,
 } from "./header_layout.js";
+export {
+    canMoveColumnWithMarryChildren,
+    collectMarriedGroups,
+    structuralLeavesOfGroup,
+} from "./marry_children.js";
 export {
     applyHeaderStyle,
     applyHeaderClass,
@@ -23,6 +31,45 @@ export {
 } from "./header_style.js";
 export { createHeaderStack } from "./header_stack.js";
 export { createBodyViewport } from "./body_viewport.js";
+export {
+    createColumnState,
+    applyColumnStateToData,
+} from "./column_state.js";
+export {
+    toPerspectiveSort,
+    toPerspectiveFilter,
+    toPerspectiveViewConfig,
+} from "./engine_bridge.js";
+export {
+    AUTO_GROUP_COL_ID,
+    extractRowGroupConfig,
+    filterDisplayLeaves,
+    mapAggFuncToPerspective,
+    formatRowPathLabel,
+    isRowPathExpandable,
+} from "./row_grouping.js";
+export {
+    createDetailRowModel,
+    buildVirtualRowMap,
+    detailFilterForPath,
+    pathKey,
+    isTreeExpandable,
+    isDetailExpandable,
+    computeStickyGroupEntries,
+    splitStickyTopAndBottom,
+    stickyTotalLabel,
+} from "./detail_row_model.js";
+export {
+    lucideIcon,
+    iconChevronRight,
+    iconChevronDown,
+    iconArrowUp,
+    iconArrowDown,
+    iconArrowUpDown,
+    iconPin,
+    iconPinOff,
+    iconGrip,
+} from "./icons.js";
 
 import { createGrid } from "./create_grid.js";
 

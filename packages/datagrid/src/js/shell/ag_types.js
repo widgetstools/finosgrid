@@ -49,6 +49,8 @@
  *   enableRowGroup?: boolean,
  *   enablePivot?: boolean,
  *   enableValue?: boolean,
+ *   rowGroup?: boolean,
+ *   rowGroupIndex?: number,
  *   aggFunc?: string|function|null,
  *   children?: never
  * }} ColDef
@@ -69,10 +71,15 @@
  * @property {Partial<ColGroupDef>} [defaultColGroupDef]
  * @property {any[]} [rowData]
  * @property {boolean} [floatingFilter]
+ * @property {number} [groupDefaultExpanded]
+ * @property {ColDef} [autoGroupColumnDef]
+ * @property {string} [groupDisplayType]
+ * @property {boolean} [groupHideColumns]
  * @property {string} [domLayout]
  * @property {object} [icons]
  * @property {(event: *) => void} [onGridReady]
  * @property {(event: *) => void} [onColumnGroupOpened]
+ * @property {(event: *) => void} [onRowGroupOpened]
  *
  * @typedef {{ groupId: string, open: boolean }} ColumnGroupStateItem
  */

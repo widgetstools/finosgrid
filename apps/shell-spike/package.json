@@ -10,7 +10,8 @@
   },
   "dependencies": {
     "@finos/perspective": "3.8.0",
-    "@widgetstools/finosgrid": "*"
+    "@widgetstools/finosgrid": "*",
+    "@widgetstools/fi-position-feed": "*"
   },
   "devDependencies": {
     "vite": "^6.0.0"

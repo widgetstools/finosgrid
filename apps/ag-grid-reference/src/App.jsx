@@ -35,6 +35,7 @@ function makeRows(n = 800) {
       region: regions[i % regions.length],
       category: cats[i % cats.length],
       city: `City ${i % 40}`,
+      product: `SKU-${(i % 60) + 1}`,
       sales: Math.round((Math.random() * 500 + 10) * 100) / 100,
       profit: Math.round((Math.random() * 200 - 50) * 100) / 100,
       quantity: (i % 12) + 1,
@@ -43,77 +44,53 @@ function makeRows(n = 800) {
   return rows;
 }
 
-const salesCellStyle = (params) => {
-  if (params.value == null) return null;
-  if (params.value > 200) return { color: "#0b6e4f", backgroundColor: "#d8f3e7" };
-  if (params.value < 50) return { color: "#8b1e1e", backgroundColor: "#fde2e1" };
-  return null;
-};
-
-const profitCellClassRules = {
-  " ag-cell-profit-neg": (p) => p.value < 0,
-  "ag-cell-profit-pos": (p) => p.value >= 0,
-};
-
+/**
+ * Row-grouping reference: mirrors the finosgrid shell spike
+ * (desk→sector ≈ region→category) so sticky + expand-to-leaf can be compared.
+ */
 export function App() {
   const gridRef = useRef(null);
   const [rowData] = useState(() => makeRows());
-  const [pivotMode, setPivotMode] = useState(false);
+  const [suppressSticky, setSuppressSticky] = useState(false);
+  const [groupDefaultExpanded, setGroupDefaultExpanded] = useState(1);
+  const [groupTotalRow, setGroupTotalRow] = useState("bottom");
+  const [grandTotalRow, setGrandTotalRow] = useState("bottom");
 
   const columnDefs = useMemo(
     () => [
       {
-        headerName: "Geography",
-        children: [
-          {
-            field: "region",
-            filter: "agSetColumnFilter",
-            enableRowGroup: true,
-            enablePivot: true,
-          },
-          {
-            field: "city",
-            filter: "agTextColumnFilter",
-            enableRowGroup: true,
-            enablePivot: true,
-          },
-        ],
+        field: "region",
+        rowGroup: true,
+        hide: true,
+        rowGroupIndex: 0,
+        enableRowGroup: true,
       },
       {
-        headerName: "Product",
-        children: [
-          {
-            field: "category",
-            filter: "agSetColumnFilter",
-            enableRowGroup: true,
-            enablePivot: true,
-          },
-        ],
+        field: "category",
+        rowGroup: true,
+        hide: true,
+        rowGroupIndex: 1,
+        enableRowGroup: true,
+      },
+      { field: "city", filter: "agTextColumnFilter" },
+      { field: "product", filter: "agTextColumnFilter" },
+      {
+        field: "sales",
+        filter: "agNumberColumnFilter",
+        enableValue: true,
+        aggFunc: "sum",
       },
       {
-        headerName: "Metrics",
-        children: [
-          {
-            field: "sales",
-            filter: "agNumberColumnFilter",
-            enableValue: true,
-            aggFunc: "sum",
-            cellStyle: salesCellStyle,
-          },
-          {
-            field: "profit",
-            filter: "agNumberColumnFilter",
-            enableValue: true,
-            aggFunc: "sum",
-            cellClassRules: profitCellClassRules,
-          },
-          {
-            field: "quantity",
-            filter: "agNumberColumnFilter",
-            enableValue: true,
-            aggFunc: "sum",
-          },
-        ],
+        field: "profit",
+        filter: "agNumberColumnFilter",
+        enableValue: true,
+        aggFunc: "sum",
+      },
+      {
+        field: "quantity",
+        filter: "agNumberColumnFilter",
+        enableValue: true,
+        aggFunc: "sum",
       },
     ],
     [],
@@ -133,8 +110,9 @@ export function App() {
 
   const autoGroupColumnDef = useMemo(
     () => ({
-      minWidth: 200,
-      floatingFilter: true,
+      headerName: "Region / Category",
+      minWidth: 240,
+      pinned: "left",
     }),
     [],
   );
@@ -148,33 +126,25 @@ export function App() {
           labelKey: "columns",
           iconKey: "columns",
           toolPanel: "agColumnsToolPanel",
-          toolPanelParams: {
-            suppressRowGroups: false,
-            suppressValues: false,
-            suppressPivots: false,
-            suppressPivotMode: false,
-            suppressColumnFilter: false,
-            suppressColumnSelectAll: false,
-            suppressColumnExpandAll: false,
-          },
-        },
-        {
-          id: "filters",
-          labelDefault: "Filters",
-          labelKey: "filters",
-          iconKey: "filter",
-          toolPanel: "agFiltersToolPanel",
         },
       ],
-      defaultToolPanel: "columns",
+      defaultToolPanel: "",
     }),
     [],
   );
 
-  const togglePivot = useCallback(() => {
-    setPivotMode((v) => {
+  const expandAll = useCallback(() => {
+    gridRef.current?.api?.expandAll();
+  }, []);
+
+  const collapseAll = useCallback(() => {
+    gridRef.current?.api?.collapseAll();
+  }, []);
+
+  const toggleSticky = useCallback(() => {
+    setSuppressSticky((v) => {
       const next = !v;
-      gridRef.current?.api?.setGridOption("pivotMode", next);
+      gridRef.current?.api?.setGridOption("suppressGroupRowsSticky", next);
       return next;
     });
   }, []);
@@ -184,23 +154,85 @@ export function App() {
       <div className="app">
         <header className="app__bar">
           <div>
-            <strong>AG Grid Enterprise reference</strong>
-            <span className="app__meta">v36 · Quartz · parity source for finosgrid</span>
+            <strong>AG Grid row grouping reference</strong>
+            <span className="app__meta">
+              v36 · region→category · sticky groups · expand to leaf rows
+            </span>
           </div>
           <div className="app__actions">
-            <button type="button" onClick={togglePivot}>
-              {pivotMode ? "Exit pivot mode" : "Pivot mode"}
+            <button type="button" onClick={expandAll}>
+              Expand all
             </button>
+            <button type="button" onClick={collapseAll}>
+              Collapse all
+            </button>
+            <button type="button" onClick={toggleSticky}>
+              {suppressSticky ? "Enable sticky groups" : "Suppress sticky"}
+            </button>
+            <label className="app__check">
+              groupTotalRow
+              <select
+                value={groupTotalRow}
+                onChange={(e) => {
+                  const v = e.target.value;
+                  setGroupTotalRow(v);
+                  gridRef.current?.api?.setGridOption("groupTotalRow", v);
+                }}
+              >
+                <option value="bottom">bottom</option>
+                <option value="top">top</option>
+              </select>
+            </label>
+            <label className="app__check">
+              grandTotalRow
+              <select
+                value={grandTotalRow}
+                onChange={(e) => {
+                  const v = e.target.value;
+                  setGrandTotalRow(v);
+                  gridRef.current?.api?.setGridOption("grandTotalRow", v);
+                }}
+              >
+                <option value="bottom">bottom</option>
+                <option value="top">top</option>
+              </select>
+            </label>
+            <label className="app__check">
+              Default expand
+              <select
+                value={groupDefaultExpanded}
+                onChange={(e) => {
+                  const n = Number(e.target.value);
+                  setGroupDefaultExpanded(n);
+                  gridRef.current?.api?.setGridOption(
+                    "groupDefaultExpanded",
+                    n,
+                  );
+                  gridRef.current?.api?.resetRowGroupExpansion?.();
+                }}
+              >
+                <option value={0}>0 (collapsed)</option>
+                <option value={1}>1 (regions)</option>
+                <option value={-1}>-1 (all)</option>
+              </select>
+            </label>
             <a
               className="app__link"
-              href="http://localhost:5180/"
+              href="http://localhost:5182/"
               target="_blank"
               rel="noreferrer"
             >
-              Open finosgrid demo
+              Open finosgrid shell
             </a>
           </div>
         </header>
+        <p className="app__hint">
+          Sticky group rows match normal row chrome. Use{" "}
+          <code>groupTotalRow</code> / <code>grandTotalRow</code> (
+          <code>top</code> or <code>bottom</code>) to place subgroup and grand
+          totals. Headers stick at the top with expand/collapse; totals stick
+          on the side you choose. Compare with finosgrid shell.
+        </p>
         <div className="app__grid">
           <AgGridReact
             ref={gridRef}
@@ -211,9 +243,12 @@ export function App() {
             autoGroupColumnDef={autoGroupColumnDef}
             sideBar={sideBar}
             rowGroupPanelShow="always"
-            pivotPanelShow="always"
+            groupDefaultExpanded={groupDefaultExpanded}
+            suppressGroupRowsSticky={suppressSticky}
             animateRows
             cellSelection
+            grandTotalRow={grandTotalRow}
+            groupTotalRow={groupTotalRow}
           />
         </div>
       </div>
