@@ -186,6 +186,25 @@ export interface GridOptions {
     getMainMenuItems?: (
         params: Record<string, unknown>,
     ) => Array<string | Record<string, unknown>>;
+    /**
+     * AG Status Bar — bottom panels for counts + range aggregations.
+     * @see https://www.ag-grid.com/javascript-data-grid/status-bar/
+     */
+    statusBar?: {
+        statusPanels: Array<{
+            statusPanel: string | (new () => unknown) | Record<string, unknown>;
+            align?: "left" | "center" | "right";
+            key?: string;
+            statusPanelParams?: {
+                aggFuncs?: Array<"count" | "sum" | "min" | "max" | "avg" | string>;
+                valueFormatter?: (params: {
+                    value: number | null;
+                    bigintValue?: bigint | null;
+                }) => string;
+                [k: string]: unknown;
+            };
+        }>;
+    };
     onCellContextMenu?: (event: {
         api: GridApi;
         field?: string;
@@ -286,6 +305,10 @@ export interface GridApi {
     expandAll(): void | Promise<void>;
     /** Collapse all row groups (Perspective set_depth(0)). */
     collapseAll(): void | Promise<void>;
+    /** Displayed (filtered / virtual) row count. */
+    getDisplayedRowCount(): number;
+    /** Access a status panel instance by `key`. */
+    getStatusPanel(key: string): unknown;
     setColumnAggFunc(key: string | { field?: string }, aggFunc: string | null): void;
     refreshCells(): Promise<void>;
     getSelectedRows(): any[];

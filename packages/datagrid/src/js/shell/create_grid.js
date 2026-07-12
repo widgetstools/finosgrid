@@ -37,6 +37,7 @@ import {
     defaultGroupHeaderMenuItems,
     defaultCellContextMenuItems,
 } from "./context_menu.js";
+import { createStatusBar } from "./status_bar.js";
 
 /**
  * @typedef {import('./ag_types.js').GridOptions} GridOptions
@@ -147,6 +148,7 @@ export function createGrid(eGridDiv, gridOptions = {}) {
                 type: "selectionChanged",
             });
             body.refreshSelectionPaint?.();
+            scheduleStatusBarRefresh();
         },
     });
 
@@ -159,6 +161,7 @@ export function createGrid(eGridDiv, gridOptions = {}) {
                 type: "cellSelectionChanged",
             });
             body.refreshSelectionPaint?.();
+            scheduleStatusBarRefresh({ aggregation: true });
         },
         onCellSelectionDeleteStart(e) {
             options.onCellSelectionDeleteStart?.({
@@ -250,6 +253,7 @@ export function createGrid(eGridDiv, gridOptions = {}) {
         },
         onDisplayedRowCount(count) {
             syncDisplayedRowNodes(count, options.rowData);
+            scheduleStatusBarRefresh();
         },
         getTable: () => options.table,
         getSort: () => toPerspectiveSort(columnState),
@@ -344,7 +348,7 @@ export function createGrid(eGridDiv, gridOptions = {}) {
             clearTimeout(filterDebounce);
             filterDebounce = setTimeout(() => {
                 filterDebounce = null;
-                void refresh();
+                void refresh().then(() => scheduleStatusBarRefresh());
                 options.onFilterChanged?.({ api });
             }, FILTER_DEBOUNCE_MS);
             return;
@@ -357,11 +361,11 @@ export function createGrid(eGridDiv, gridOptions = {}) {
         }
         // Pin: rebuild split panes + Perspective column order
         if (kind === "pin") {
-            void refresh();
+            void refresh().then(() => scheduleStatusBarRefresh());
             options.onColumnPinned?.({ api });
             return;
         }
-        void refresh();
+        void refresh().then(() => scheduleStatusBarRefresh());
         if (kind === "sort") options.onSortChanged?.({ api });
         if (kind === "filter") options.onFilterChanged?.({ api });
         if (kind === "move") options.onColumnMoved?.({ api });
@@ -394,7 +398,93 @@ export function createGrid(eGridDiv, gridOptions = {}) {
         header.el.querySelector(".fg-shell__filter-row").style.display = "none";
     }
 
-    root.append(header.el, body.el);
+    /** @type {number[]} */
+    let aggregationValueCache = [];
+    let totalRowCountCache = 0;
+    /** @type {ReturnType<typeof setTimeout>|null} */
+    let statusBarTimer = null;
+    /** @type {ReturnType<typeof setTimeout>|null} */
+    let statusBarAggTimer = null;
+
+    async function refreshTotalRowCount() {
+        try {
+            if (typeof options.table?.size === "function") {
+                const n = await options.table.size();
+                totalRowCountCache = Number(n) || 0;
+                return;
+            }
+            if (typeof options.table?.num_rows === "function") {
+                const n = await options.table.num_rows();
+                totalRowCountCache = Number(n) || 0;
+                return;
+            }
+        } catch {
+            /* ignore */
+        }
+        if (Array.isArray(options.rowData)) {
+            totalRowCountCache = options.rowData.length;
+            return;
+        }
+        // No dataset size available — leave cache unchanged rather than
+        // collapsing total to the virtual/grouped displayed count.
+    }
+
+    function getStatusCounts() {
+        const displayed =
+            body.getDisplayedRowCount?.() ?? displayedRowNodes.length;
+        const hasFilter =
+            Object.keys(columnState.getFilterModel?.() || {}).length > 0;
+        return {
+            // Prefer dataset size; fall back to displayed only when unknown.
+            total: totalRowCountCache > 0 ? totalRowCountCache : displayed,
+            displayed,
+            selected: rowSelection.getSelectedNodes?.()?.length || 0,
+            hasFilter,
+        };
+    }
+
+    function scheduleStatusBarRefresh({
+        aggregation = false,
+        refreshTotal = false,
+    } = {}) {
+        if (statusBarTimer) clearTimeout(statusBarTimer);
+        statusBarTimer = setTimeout(() => {
+            statusBarTimer = null;
+            if (refreshTotal) {
+                void refreshTotalRowCount().then(() => statusBar.refresh());
+            } else {
+                statusBar.refresh();
+            }
+        }, 0);
+        if (aggregation) {
+            if (statusBarAggTimer) clearTimeout(statusBarAggTimer);
+            statusBarAggTimer = setTimeout(() => {
+                statusBarAggTimer = null;
+                void (async () => {
+                    try {
+                        aggregationValueCache =
+                            (await body.collectNumericRangeValues?.(
+                                cellSelection.getCellRanges(),
+                            )) || [];
+                    } catch {
+                        aggregationValueCache = [];
+                    }
+                    statusBar.refresh();
+                })();
+            }, 16);
+        }
+    }
+
+    const statusBar = createStatusBar({
+        getApi: () => api,
+        context: options.context,
+        getCounts: getStatusCounts,
+        getAggregationValues: () => aggregationValueCache,
+    });
+    statusBar.setConfig(options.statusBar || null);
+    void refreshTotalRowCount().then(() => statusBar.refresh());
+
+    root.append(header.el, body.el, statusBar.el);
     eGridDiv.appendChild(root);
 
     const popupMenus = createContextMenuController({
@@ -767,6 +857,8 @@ export function createGrid(eGridDiv, gridOptions = {}) {
                 void enqueueTableOp(async () => {
                     if (gen !== viewGen || !engineView) return;
                     await body.onEngineUpdate();
+                    await refreshTotalRowCount();
+                    scheduleStatusBarRefresh();
                 });
             }, TABLE_UPDATE_REDRAW_MS);
         });
@@ -917,18 +1009,33 @@ export function createGrid(eGridDiv, gridOptions = {}) {
                 setThemeMode(root, themeMode, theme);
                 return;
             }
-            if (key === "rowData" || key === "loadColumns" || key === "table") {
-                void refresh();
-                return;
-            }
             if (key === "floatingFilter") {
                 const el = root.querySelector(".fg-shell__filter-row");
                 if (el) el.style.display = value === false ? "none" : "";
+            }
+            if (key === "statusBar") {
+                statusBar.setConfig(value || null);
+                scheduleStatusBarRefresh({ aggregation: true });
+                return;
+            }
+            if (key === "rowData" || key === "loadColumns" || key === "table") {
+                void refreshTotalRowCount().then(() => {
+                    void refresh().then(() => scheduleStatusBarRefresh());
+                });
+                return;
             }
         },
 
         getGridOption(key) {
             return options[key];
+        },
+
+        getDisplayedRowCount() {
+            return body.getDisplayedRowCount?.() ?? displayedRowNodes.length;
+        },
+
+        getStatusPanel(key) {
+            return statusBar.getStatusPanel(key);
         },
 
         getColumnDefs() {
@@ -1164,8 +1271,11 @@ export function createGrid(eGridDiv, gridOptions = {}) {
 
         async destroy() {
             popupMenus.hidePopupMenu();
+            statusBar.destroy?.();
             clearTimeout(filterDebounce);
             clearTimeout(updateDebounce);
+            clearTimeout(statusBarTimer);
+            clearTimeout(statusBarAggTimer);
             viewGen += 1;
             header.destroy?.();
             await enqueueTableOp(async () => {
@@ -1176,6 +1286,7 @@ export function createGrid(eGridDiv, gridOptions = {}) {
     });
 
     void refresh().then(() => {
+        void refreshTotalRowCount().then(() => scheduleStatusBarRefresh());
         options.onGridReady?.({ api, type: "gridReady" });
     });
 

@@ -443,6 +443,7 @@ Not started. Reference app already sets `cellSelection` on AG demo for visual pa
 |---|---|
 | **UI** | Bottom panels: total/filtered/selected row counts; aggregation on selection |
 | **Model** | `statusBar: { statusPanels: [...] }` with `agTotalRowCountComponent`, etc. |
+| **finosgrid** | **Done** (`feature/status-bar`) — provided panels, `aggFuncs`, `valueFormatter`, custom panels, `getStatusPanel` |
 
 ### 3.21 Context menu **(E)** — full inventory in §5
 

@@ -1555,6 +1555,101 @@ export function createBodyViewport({
         }
     }
 
+    /**
+     * Collect numeric cell values for status-bar aggregation over ranges.
+     * Uses in-memory client columns when present; otherwise samples the
+     * engine/detail window for the requested row span (batched).
+     * @param {Array<{ startRow: { rowIndex: number }, endRow: { rowIndex: number }, columns: string[] }>} ranges
+     * @returns {Promise<number[]>}
+     */
+    async function collectNumericRangeValues(ranges) {
+        /** @type {number[]} */
+        const out = [];
+        if (!ranges?.length) return out;
+
+        const toNum = (v) => {
+            if (typeof v === "number" && Number.isFinite(v)) return v;
+            if (typeof v === "bigint") return Number(v);
+            if (typeof v === "string" && v.trim() !== "") {
+                const n = Number(v);
+                return Number.isFinite(n) ? n : null;
+            }
+            return null;
+        };
+
+        // Client column-oriented path
+        if (!engineView && Object.keys(columns).length) {
+            for (const range of ranges) {
+                const r0 = Math.min(range.startRow.rowIndex, range.endRow.rowIndex);
+                const r1 = Math.max(range.startRow.rowIndex, range.endRow.rowIndex);
+                for (const col of range.columns || []) {
+                    if (col === AUTO_GROUP_COL_ID || col === SELECTION_COL_ID) {
+                        continue;
+                    }
+                    const arr = columns[col];
+                    if (!arr) continue;
+                    for (let r = r0; r <= r1; r++) {
+                        const n = toNum(arr[r]);
+                        if (n != null) out.push(n);
+                    }
+                }
+            }
+            return out;
+        }
+
+        if (!engineView) return out;
+
+        for (const range of ranges) {
+            const r0 = Math.min(range.startRow.rowIndex, range.endRow.rowIndex);
+            const r1 = Math.max(range.startRow.rowIndex, range.endRow.rowIndex);
+            const cols = (range.columns || []).filter(
+                (c) => c !== AUTO_GROUP_COL_ID && c !== SELECTION_COL_ID,
+            );
+            if (!cols.length || r1 < r0) continue;
+
+            try {
+                if (rowModelActive() && detailModel) {
+                    const fetched = await detailModel.fetchWindow(
+                        engineView,
+                        r0,
+                        r1 + 1,
+                        cols,
+                        AUTO_GROUP_COL_ID,
+                    );
+                    for (const col of cols) {
+                        const arr = fetched.columns?.[col] || [];
+                        for (const v of arr) {
+                            const n = toNum(v);
+                            if (n != null) out.push(n);
+                        }
+                    }
+                } else {
+                    // Map virtual rows ≈ engine rows when no detail model
+                    const end_col = Math.max(
+                        1,
+                        viewFields.length || cols.length,
+                    );
+                    const raw = await engineView.to_columns({
+                        start_row: r0,
+                        end_row: r1 + 1,
+                        start_col: 0,
+                        end_col,
+                    });
+                    for (const col of cols) {
+                        const arr = raw[col] || [];
+                        for (const v of arr) {
+                            const n = toNum(v);
+                            if (n != null) out.push(n);
+                        }
+                    }
+                }
+            } catch {
+                /* view replaced */
+            }
+        }
+        return out;
+    }
+
     leftPane.wrap.style.display = "none";
     rightPane.wrap.style.display = "none";
     centerPane.configure([], 0, "both");
@@ -1571,9 +1666,13 @@ export function createBodyViewport({
         onEngineUpdate,
         expandAllGroups,
         collapseAllGroups,
+        collectNumericRangeValues,
         measureColumnWidths,
         applyPinnedLayout,
         refreshSelectionPaint,
+        getDisplayedRowCount() {
+            return numRows;
+        },
         get scrollLeft() {
             return centerPane.table.scrollLeft || 0;
         },

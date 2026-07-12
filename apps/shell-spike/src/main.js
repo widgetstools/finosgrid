@@ -112,6 +112,25 @@ const feed = createFIPositionFeed({
             cellSelection: {
                 handle: { mode: "fill" },
             },
+            statusBar: {
+                statusPanels: [
+                    {
+                        statusPanel: "agTotalAndFilteredRowCountComponent",
+                        align: "left",
+                    },
+                    {
+                        statusPanel: "agSelectedRowCountComponent",
+                        align: "left",
+                    },
+                    {
+                        statusPanel: "agAggregationComponent",
+                        align: "right",
+                        statusPanelParams: {
+                            aggFuncs: ["count", "sum", "avg", "min", "max"],
+                        },
+                    },
+                ],
+            },
             autoGroupColumnDef: {
                 headerName: "Desk / Sector",
                 width: 240,
