@@ -37,6 +37,19 @@ async function compileLess() {
         result.css,
     );
 
+    const shellEntry = path.join(LESS_DIR, "shell/header_stack.less");
+    const shellResult = await less.render(
+        fs.readFileSync(shellEntry, "utf8"),
+        {
+            filename: shellEntry,
+            paths: [LESS_DIR],
+        },
+    );
+    fs.writeFileSync(
+        path.join(DIST_CSS, "finosgrid-shell.css"),
+        shellResult.css,
+    );
+
     const toolbar = path.join(LESS_DIR, "toolbar.less");
     const toolbarResult = await less.render(fs.readFileSync(toolbar, "utf8"), {
         filename: toolbar,

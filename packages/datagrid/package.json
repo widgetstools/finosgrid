@@ -13,18 +13,20 @@
       "types": "./index.d.ts",
       "default": "./dist/esm/finosgrid.js"
     },
+    "./shell": "./src/js/shell/index.js",
     "./dist/*": "./dist/*",
     "./package.json": "./package.json"
   },
   "files": [
     "dist/**/*",
+    "src/js/shell/**/*",
     "index.d.ts",
     "README.md"
   ],
   "scripts": {
     "build": "node ./build.mjs",
     "clean": "rm -rf dist",
-    "test": "node --test test/js/chrome_phase1.spec.js test/js/shell/column_tree.spec.js test/js/shell/header_style.spec.js"
+    "test": "node --test test/js/chrome_phase1.spec.js test/js/shell/*.spec.js"
   },
   "publishConfig": {
     "access": "public"

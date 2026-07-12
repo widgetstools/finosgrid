@@ -13,6 +13,7 @@
     "test": "npm run test -w @widgetstools/finosgrid",
     "demo": "npm run start -w ag-chrome-demo",
     "demo:ag": "npm run start -w ag-grid-reference",
+    "demo:shell": "npm run start -w shell-spike",
     "start": "npm run demo"
   },
   "repository": {

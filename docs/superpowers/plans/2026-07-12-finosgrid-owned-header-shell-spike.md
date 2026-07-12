@@ -91,15 +91,15 @@ EOF
 - Create: `packages/datagrid/src/js/shell/header_stack.js`
 - Create: `packages/datagrid/src/less/shell/header_stack.less`
 
-- [ ] **Step 1: Render nested group rows with collapse control (▶/▼) per group**
+- [x] **Step 1: Render nested group rows with collapse control (▶/▼) per group**
 
-- [ ] **Step 2: Render leaf header row for `visibleLeaves()` only; apply `headerStyle`**
+- [x] **Step 2: Render leaf header row for `visibleLeaves()` only; apply `headerStyle`**
 
-- [ ] **Step 3: Reserve a floating-filter row slot **under** leaf headers (empty inputs OK for spike)
+- [x] **Step 3: Reserve a floating-filter row slot **under** leaf headers (empty inputs OK for spike)
 
-- [ ] **Step 4: On toggle, recompute visible leaves and re-render header rows**
+- [x] **Step 4: On toggle, recompute visible leaves and re-render header rows**
 
-- [ ] **Step 5: Manual check in spike demo; commit**
+- [x] **Step 5: Manual check in spike demo; commit**
 
 ```bash
 git commit -m "$(cat <<'EOF'
@@ -117,15 +117,15 @@ EOF
 - Create: `packages/datagrid/src/js/shell/body_viewport.js`
 - Modify: demo spike wiring (Perspective table/view → listener)
 
-- [ ] **Step 1: Mount `<regular-table>` with dataListener that returns **no** product `column_headers` (row headers OK if grouped)**
+- [x] **Step 1: Mount `<regular-table>` with dataListener that returns **no** product `column_headers` (row headers OK if grouped)**
 
-- [ ] **Step 2: When visible leaves change, update Perspective `columns` (or listener column map) to match visible fields only**
+- [x] **Step 2: When visible leaves change, update Perspective `columns` (or listener column map) to match visible fields only**
 
-- [ ] **Step 3: Sync leaf header + filter cell widths to body cell widths; sync `scrollLeft`**
+- [x] **Step 3: Sync leaf header + filter cell widths to body cell widths; sync `scrollLeft`**
 
-- [ ] **Step 4: Verify: expand/collapse changes painted columns; first body row sits below floating filter row with no overlap**
+- [x] **Step 4: Verify: expand/collapse changes painted columns; first body row sits below floating filter row with no overlap**
 
-- [ ] **Step 5: Commit**
+- [x] **Step 5: Commit**
 
 ```bash
 git commit -m "$(cat <<'EOF'
@@ -144,25 +144,35 @@ EOF
 - Update: `docs/ag-parity/column-groups/research.md`
 - Screenshots: `docs/ag-parity/column-groups/screenshot-shell-spike.png`
 
-- [ ] **Step 1: Demo data with nested groups + always/open/closed leaves + sample `headerStyle` borders**
+- [x] **Step 1: Demo data with nested groups + always/open/closed leaves + sample `headerStyle` borders**
 
-- [ ] **Step 2: Capture screenshot vs AG reference groups**
+- [x] **Step 2: Capture screenshot vs AG reference groups**
 
-- [ ] **Step 3: Mark spike success criteria (below) pass/fail in ADR or this plan**
+- [x] **Step 3: Mark spike success criteria (below) pass/fail in ADR or this plan**
 
-- [ ] **Step 4: Commit + push if asked**
+- [x] **Step 4: Commit + push if asked**
 
 ## Spike success criteria
 
 | # | Criterion | Pass? |
 |---|---|---|
-| 1 | Floating filters render **below** leaf column headers | |
-| 2 | Nested groups collapse/expand | |
-| 3 | `always` / `open` / `closed` leaves show/hide correctly | |
-| 4 | Body columns match visible leaves (Perspective path) | |
-| 5 | Per-side header borders + font/colors apply on group and leaf headers | |
-| 6 | No overlap of header stack with first body row | |
-| 7 | Horizontal scroll keeps headers aligned with body | |
+| 1 | Floating filters render **below** leaf column headers | **Pass** |
+| 2 | Nested groups collapse/expand | **Pass** |
+| 3 | `always` / `open` / `closed` leaves show/hide correctly | **Pass** |
+| 4 | Body columns match visible leaves (Perspective path) | **Pass** |
+| 5 | Per-side header borders + font/colors apply on group and leaf headers | **Pass** |
+| 6 | No overlap of header stack with first body row | **Pass** |
+| 7 | Horizontal scroll keeps headers aligned with body | **Pass** (scroll listener + track `translateX`) |
+
+**Demo:** `npm run demo:shell` → http://localhost:5182/  
+**Screenshot:** `docs/ag-parity/column-groups/screenshot-shell-spike.png`
+
+### Task 3–5 status
+
+- [x] Task 3: Header stack DOM
+- [x] Task 4: Body-only regular-table + column sync
+- [x] Task 5: Spike demo + screenshots + criteria
+
 
 ## Out of scope for this spike
 

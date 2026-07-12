@@ -9,7 +9,7 @@ Reference app: `apps/ag-grid-reference` (Enterprise **v36**, Quartz).
 | Quartz theme | [theme-quartz](./theme-quartz/research.md) | pending | partial |
 | Floating filters | [floating-filters](./floating-filters/research.md) | captured | under headers via shell (target) |
 | Set filter | [set-filter](./set-filter/research.md) | pending | chrome only |
-| Column groups | [column-groups](./column-groups/research.md) | pending | shell spike (nested + open/closed) |
+| Column groups | [column-groups](./column-groups/research.md) | spike shot | **shell spike pass** |
 | Conditional formatting | [conditional-formatting](./conditional-formatting/research.md) | pending | partial |
 | Columns tool panel | [columns-panel](./columns-panel/research.md) | pending | not started |
 | Pivot | [pivot](./pivot/research.md) | pending | chrome only |

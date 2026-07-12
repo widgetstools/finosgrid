@@ -2,7 +2,8 @@
 
 **Docs:** https://www.ag-grid.com/react-data-grid/column-groups/  
 **Architecture:** [Shell ADR](../../superpowers/specs/2026-07-12-finosgrid-shell-architecture-adr.md)  
-**Spike:** [Owned header shell plan](../../superpowers/plans/2026-07-12-finosgrid-owned-header-shell-spike.md)
+**Spike:** [Owned header shell plan](../../superpowers/plans/2026-07-12-finosgrid-owned-header-shell-spike.md)  
+**Demo:** `npm run demo:shell` → http://localhost:5182/
 
 ## AG model we need
 
@@ -24,14 +25,13 @@
 
 ## Screenshots
 
-- `screenshot-groups.png` — AG reference (pending)
-- `screenshot-shell-spike.png` — finosgrid shell spike (pending)
+- `screenshot-shell-spike.png` — owned header shell (groups → leaves → filters → body)
 
 ## finosgrid parity checklist
 
-- [ ] Owned header stack (not regular-table `column_headers`)
-- [ ] Group headers above leaf headers; floating filters **below** leaves
-- [ ] Nested collapsible groups
-- [ ] `always` / `open` / `closed` leaf visibility
-- [ ] Spans / widths sync with body; horizontal scroll synced
-- [ ] Header + group styling API (font, fg/bg, per-side borders)
+- [x] Owned header stack (not regular-table `column_headers`)
+- [x] Group headers above leaf headers; floating filters **below** leaves
+- [x] Nested collapsible groups
+- [x] `always` / `open` / `closed` leaf visibility
+- [x] Spans / widths sync with body; horizontal scroll synced (wired; overflows when columns exceed viewport)
+- [x] Header + group styling API (font, fg/bg, per-side borders)
