@@ -8,6 +8,7 @@ import {
     formatRowPathLabel,
     isRowPathExpandable,
 } from "./row_grouping.js";
+import { SELECTION_COL_ID } from "./selection_options.js";
 import {
     createDetailRowModel,
     isDetailExpandable,
@@ -31,6 +32,7 @@ import { iconChevronRight, iconChevronDown } from "./icons.js";
  * @param {(scrollLeft: number) => void} [options.onScroll]
  * @param {() => void} [options.onDraw]
  * @param {(info: { rowIndex: number, expanded: boolean, detail?: boolean }) => void} [options.onRowGroupOpened]
+ * @param {(count: number) => void} [options.onDisplayedRowCount]
  * @param {() => any} [options.getTable]
  * @param {() => Array<[string, string]>} [options.getSort]
  * @param {() => Array<[string, string, any]>} [options.getFilter]
@@ -38,11 +40,16 @@ import { iconChevronRight, iconChevronDown } from "./icons.js";
  * @param {boolean} [options.suppressGroupRowsSticky=false]
  * @param {'top'|'bottom'|null} [options.groupTotalRow='bottom'] AG: subgroup total placement
  * @param {'top'|'bottom'|null} [options.grandTotalRow='bottom'] AG: grand total placement
+ * @param {() => any} [options.getRowSelection]
+ * @param {() => any} [options.getCellSelection]
+ * @param {any} [options.rowSelection]
+ * @param {any} [options.cellSelection]
  */
 export function createBodyViewport({
     onScroll,
     onDraw,
     onRowGroupOpened,
+    onDisplayedRowCount,
     getTable,
     getSort,
     getFilter,
@@ -50,6 +57,10 @@ export function createBodyViewport({
     suppressGroupRowsSticky = false,
     groupTotalRow = "bottom",
     grandTotalRow = "bottom",
+    getRowSelection,
+    getCellSelection,
+    rowSelection: rowSelectionCtrl,
+    cellSelection: cellSelectionCtrl,
 } = {}) {
     const root = document.createElement("div");
     root.className = "fg-shell__body";
@@ -92,6 +103,10 @@ export function createBodyViewport({
     let grandTotalPlacement = grandTotalRow;
     /** @type {string} */
     let stickySignature = "";
+
+    function isSyntheticField(f) {
+        return f === AUTO_GROUP_COL_ID || f === SELECTION_COL_ID;
+    }
 
     /** Row model active whenever we have group_by + table (sticky + optional detail). */
     function rowModelActive() {
@@ -198,6 +213,11 @@ export function createBodyViewport({
                         num_rows,
                         num_columns: nLocal,
                         data: sliceFields.map((f) => {
+                            if (f === SELECTION_COL_ID) {
+                                return Array(
+                                    Math.max(0, Math.min(y1, num_rows) - y0),
+                                ).fill("");
+                            }
                             if (f === AUTO_GROUP_COL_ID) {
                                 return (fetched.paths || []).map((path, i) => {
                                     const row = fetched.slice?.[i];
@@ -237,7 +257,7 @@ export function createBodyViewport({
 
             if (engineView) {
                 const sliceReal = sliceFields.filter(
-                    (f) => f !== AUTO_GROUP_COL_ID,
+                    (f) => !isSyntheticField(f),
                 );
                 let start_col = 0;
                 let end_col = 1;
@@ -278,6 +298,11 @@ export function createBodyViewport({
                     num_rows,
                     num_columns: nLocal,
                     data: sliceFields.map((f) => {
+                        if (f === SELECTION_COL_ID) {
+                            return Array(
+                                Math.max(0, window.end_row - window.start_row),
+                            ).fill("");
+                        }
                         if (f === AUTO_GROUP_COL_ID) {
                             const paths = cols.__ROW_PATH__ || [];
                             return paths.map((path) =>
@@ -293,6 +318,9 @@ export function createBodyViewport({
                 num_rows,
                 num_columns: nLocal,
                 data: sliceFields.map((f) => {
+                    if (f === SELECTION_COL_ID) {
+                        return Array(Math.max(0, y1 - y0)).fill("");
+                    }
                     const col = columns[f] || [];
                     return col.slice(y0, y1);
                 }),
@@ -343,6 +371,7 @@ export function createBodyViewport({
         table.addStyleListener?.(() => {
             applyWidthsToPane(pane);
             decorateTreeCells(pane);
+            decorateSelectionUi(pane);
             flashChangedCells(pane);
             onDraw?.();
         });
@@ -407,7 +436,7 @@ export function createBodyViewport({
     }
 
     function layoutPanes() {
-        viewFields = fields.filter((f) => f !== AUTO_GROUP_COL_ID);
+        viewFields = fields.filter((f) => !isSyntheticField(f));
         const parts = partitionFields(fields);
         leftFields = parts.left;
         centerFields = parts.center;
@@ -455,7 +484,7 @@ export function createBodyViewport({
             rightPane.configure(
                 rightFields,
                 centerOffset +
-                    centerList.filter((f) => f !== AUTO_GROUP_COL_ID).length,
+                    centerList.filter((f) => !isSyntheticField(f)).length,
                 "vertical",
             );
         }
@@ -779,6 +808,381 @@ export function createBodyViewport({
     }
 
     /**
+     * Paint row selection checkboxes / highlights and cell range highlights.
+     * @param {ReturnType<typeof makePane>} pane
+     */
+    function decorateSelectionUi(pane) {
+        const rowOpts = getRowSelection?.() || null;
+        const cellOpts = getCellSelection?.() || null;
+        const tds = pane.table.querySelectorAll("tbody td");
+        const focusCell = cellSelectionCtrl?.getFocus?.() || null;
+        const EDGE = [
+            "fg-shell__cell--range-top",
+            "fg-shell__cell--range-bottom",
+            "fg-shell__cell--range-left",
+            "fg-shell__cell--range-right",
+        ];
+
+        for (const td of tds) {
+            const meta = pane.table.getMeta?.(td);
+            if (meta?.y == null || meta.x == null) continue;
+            const field = pane.fields[meta.x];
+            const rowIndex = meta.y;
+            const selectedRow = !!rowSelectionCtrl?.isIdSelected?.(
+                String(rowIndex),
+            );
+
+            td.classList.toggle("fg-shell__cell--row-selected", selectedRow);
+            td.classList.remove(...EDGE, "fg-shell__cell--range-focus");
+
+            if (cellOpts?.enabled && cellSelectionCtrl) {
+                const inRange = cellSelectionCtrl.isCellInSelection(
+                    rowIndex,
+                    field,
+                );
+                td.classList.toggle("fg-shell__cell--range-selected", inRange);
+                if (inRange) {
+                    const edges = cellSelectionCtrl.getRangeEdgeFlags(
+                        rowIndex,
+                        field,
+                    );
+                    if (edges?.top) td.classList.add("fg-shell__cell--range-top");
+                    if (edges?.bottom)
+                        td.classList.add("fg-shell__cell--range-bottom");
+                    if (edges?.left)
+                        td.classList.add("fg-shell__cell--range-left");
+                    if (edges?.right)
+                        td.classList.add("fg-shell__cell--range-right");
+                }
+                const isFocus =
+                    !!focusCell &&
+                    focusCell.rowIndex === rowIndex &&
+                    focusCell.colId === field;
+                td.classList.toggle("fg-shell__cell--range-focus", isFocus);
+                if (cellOpts.enableHeaderHighlight && inRange) {
+                    td.classList.add("fg-shell__cell--header-highlight");
+                } else {
+                    td.classList.remove("fg-shell__cell--header-highlight");
+                }
+            } else {
+                td.classList.remove(
+                    "fg-shell__cell--range-selected",
+                    "fg-shell__cell--header-highlight",
+                    "fg-shell__cell--range-focus",
+                );
+            }
+
+            // Selection column checkboxes
+            if (field === SELECTION_COL_ID && rowOpts && rowSelectionCtrl) {
+                td.classList.add("fg-shell__selection-cell");
+                const nodes = rowSelectionCtrl.getRowNodes?.() || [];
+                const node = nodes[rowIndex];
+                const selectable = node
+                    ? rowSelectionCtrl.isSelectable(node)
+                    : true;
+                const checked = !!rowSelectionCtrl.isIdSelected?.(
+                    String(rowIndex),
+                );
+                const showCb =
+                    rowOpts.checkboxes !== false &&
+                    (selectable || !rowOpts.hideDisabledCheckboxes);
+                if (!showCb) {
+                    td.textContent = "";
+                    continue;
+                }
+                let input = td.querySelector("input.fg-shell__selection-cb");
+                if (!input) {
+                    td.textContent = "";
+                    input = document.createElement("input");
+                    input.type = "checkbox";
+                    input.className = "fg-shell__selection-cb";
+                    input.addEventListener("click", (e) => {
+                        e.stopPropagation();
+                        const n =
+                            rowSelectionCtrl.getRowNodes?.()?.[rowIndex];
+                        if (!n) return;
+                        const multi = rowOpts.mode === "multiRow";
+                        n.setSelected(input.checked, !multi);
+                    });
+                    td.appendChild(input);
+                }
+                input.checked = checked;
+                input.disabled = !selectable;
+                // Header-like select-all lives in header; body only row cbs
+            } else if (
+                field === AUTO_GROUP_COL_ID &&
+                rowOpts?.checkboxLocation === "autoGroupColumn" &&
+                rowOpts.checkboxes !== false &&
+                rowSelectionCtrl
+            ) {
+                // Inject checkbox before tree toggle if missing
+                if (!td.querySelector("input.fg-shell__selection-cb")) {
+                    const nodes = rowSelectionCtrl.getRowNodes?.() || [];
+                    const node = nodes[rowIndex];
+                    if (!node) continue;
+                    const selectable = rowSelectionCtrl.isSelectable(node);
+                    if (!selectable && rowOpts.hideDisabledCheckboxes) continue;
+                    const input = document.createElement("input");
+                    input.type = "checkbox";
+                    input.className = "fg-shell__selection-cb";
+                    input.checked = !!rowSelectionCtrl.isIdSelected?.(
+                        String(rowIndex),
+                    );
+                    input.disabled = !selectable;
+                    input.addEventListener("click", (e) => {
+                        e.stopPropagation();
+                        const n =
+                            rowSelectionCtrl.getRowNodes?.()?.[rowIndex];
+                        if (!n) return;
+                        n.setSelected(
+                            input.checked,
+                            rowOpts.mode !== "multiRow",
+                        );
+                    });
+                    td.insertBefore(input, td.firstChild);
+                }
+            }
+        }
+
+        // Row click selection (when enabled)
+        if (rowOpts?.enableClickSelection || rowOpts?.enableSelectionWithoutKeys) {
+            // handled via table click listener below
+        }
+
+        updateFillHandle();
+    }
+
+    /** @type {{ start: { rowIndex: number, colId: string }, additive: boolean }|null} */
+    let rangeDrag = null;
+
+    function cellFromEventTarget(table, target) {
+        const td = target?.closest?.("td");
+        if (!td) return null;
+        const meta = table.getMeta?.(td);
+        if (meta?.y == null || meta?.x == null) return null;
+        const pane = panes.find((p) => p.table === table);
+        if (!pane) return null;
+        const colId = pane.fields[meta.x];
+        if (!colId || colId === SELECTION_COL_ID) return null;
+        return { rowIndex: meta.y, colId, td, pane };
+    }
+
+    function orderedDisplayColumns() {
+        // Exclude synthetic chrome columns from range math
+        return fields.filter(
+            (f) => f !== SELECTION_COL_ID && f !== AUTO_GROUP_COL_ID,
+        );
+    }
+
+    function installSelectionGestures(pane) {
+        const table = pane.table;
+
+        table.addEventListener("click", (e) => {
+            const rowOpts = getRowSelection?.();
+            if (
+                rowOpts &&
+                (rowOpts.enableClickSelection ||
+                    rowOpts.enableSelectionWithoutKeys) &&
+                rowSelectionCtrl
+            ) {
+                if (e.target?.closest?.("input,button,a")) return;
+                const hit = cellFromEventTarget(table, e.target);
+                if (hit) {
+                    const node = rowSelectionCtrl.getRowNodes?.()?.[hit.rowIndex];
+                    if (node) rowSelectionCtrl.handleRowClick(node, e);
+                }
+            }
+        });
+
+        table.addEventListener("mousedown", (e) => {
+            const cellOpts = getCellSelection?.();
+            if (!cellOpts?.enabled || !cellSelectionCtrl) return;
+            if (e.button !== 0) return;
+            if (e.target?.closest?.("input,button,.fg-shell__fill-handle")) return;
+            const hit = cellFromEventTarget(table, e.target);
+            if (!hit) return;
+            e.preventDefault();
+            const additive = !!(e.ctrlKey || e.metaKey);
+            if (e.shiftKey) {
+                cellSelectionCtrl.extendToCell(hit, {
+                    columns: orderedDisplayColumns(),
+                });
+                refreshSelectionPaint();
+                return;
+            }
+            rangeDrag = { start: hit, additive };
+            cellSelectionCtrl.setAnchor(hit);
+            cellSelectionCtrl.setRangeFromCells(hit, hit, {
+                columns: orderedDisplayColumns(),
+                additive,
+            });
+            refreshSelectionPaint();
+        });
+
+        table.addEventListener("mousemove", (e) => {
+            if (!rangeDrag || !cellSelectionCtrl) return;
+            const hit = cellFromEventTarget(table, e.target);
+            if (!hit) return;
+            cellSelectionCtrl.setRangeFromCells(rangeDrag.start, hit, {
+                columns: orderedDisplayColumns(),
+                additive: rangeDrag.additive,
+            });
+            refreshSelectionPaint();
+        });
+    }
+
+    for (const pane of panes) installSelectionGestures(pane);
+
+    function onDocMouseUp() {
+        rangeDrag = null;
+    }
+    document.addEventListener("mouseup", onDocMouseUp);
+
+    root.addEventListener("keydown", (e) => {
+        const cellOpts = getCellSelection?.();
+        if (!cellOpts?.enabled || !cellSelectionCtrl) return;
+        if (e.key === "Delete" || e.key === "Backspace") {
+            const ranges = cellSelectionCtrl.beginDelete();
+            if (ranges.length) {
+                // Client rowData clear is handled by host via events; still end delete.
+                cellSelectionCtrl.endDelete();
+                e.preventDefault();
+            }
+        }
+        if ((e.ctrlKey || e.metaKey) && e.key === "a") {
+            const rowOpts = getRowSelection?.();
+            if (rowOpts?.mode === "multiRow" && rowOpts.ctrlASelectsRows) {
+                rowSelectionCtrl?.selectAll();
+                e.preventDefault();
+            }
+        }
+        if ((e.ctrlKey || e.metaKey) && (e.key === "d" || e.key === "D")) {
+            // Ctrl+D: signal only (host/editing may implement fill-down)
+            e.preventDefault();
+        }
+    });
+    root.tabIndex = 0;
+
+    /** @type {HTMLElement|null} */
+    let fillHandleEl = null;
+
+    function updateFillHandle() {
+        const cellOpts = getCellSelection?.();
+        const handle = cellOpts?.handle;
+        if (!cellOpts?.enabled || !handle || !cellSelectionCtrl) {
+            fillHandleEl?.remove();
+            fillHandleEl = null;
+            return;
+        }
+        const ranges = cellSelectionCtrl.getCellRanges();
+        if (!ranges.length) {
+            fillHandleEl?.remove();
+            fillHandleEl = null;
+            return;
+        }
+        const r = ranges[ranges.length - 1];
+        const endRow = Math.max(r.startRow.rowIndex, r.endRow.rowIndex);
+        const endCol = r.columns[r.columns.length - 1];
+        // Find bottom-right cell in center/left panes
+        let anchorTd = null;
+        for (const pane of panes) {
+            if (pane.wrap.style.display === "none") continue;
+            const xi = pane.fields.indexOf(endCol);
+            if (xi < 0) continue;
+            const tds = pane.table.querySelectorAll("tbody td");
+            for (const td of tds) {
+                const meta = pane.table.getMeta?.(td);
+                if (meta?.y === endRow && meta?.x === xi) {
+                    anchorTd = td;
+                    break;
+                }
+            }
+            if (anchorTd) break;
+        }
+        if (!anchorTd) return;
+        if (!fillHandleEl) {
+            fillHandleEl = document.createElement("div");
+            fillHandleEl.className = "fg-shell__fill-handle";
+            fillHandleEl.title =
+                handle.mode === "fill" ? "Fill handle" : "Range handle";
+            fillHandleEl.addEventListener("mousedown", (e) => {
+                e.preventDefault();
+                e.stopPropagation();
+                const rangesNow = cellSelectionCtrl.getCellRanges();
+                if (!rangesNow.length) return;
+                const cur = rangesNow[rangesNow.length - 1];
+                rangeDrag = {
+                    start: {
+                        rowIndex: Math.min(
+                            cur.startRow.rowIndex,
+                            cur.endRow.rowIndex,
+                        ),
+                        colId: cur.columns[0],
+                    },
+                    additive: false,
+                };
+            });
+            root.appendChild(fillHandleEl);
+        }
+        const box = anchorTd.getBoundingClientRect();
+        const rootBox = root.getBoundingClientRect();
+        fillHandleEl.style.left = `${box.right - rootBox.left - 4}px`;
+        fillHandleEl.style.top = `${box.bottom - rootBox.top - 4}px`;
+    }
+
+    function refreshSelectionPaint() {
+        for (const pane of panes) {
+            if (pane.wrap.style.display === "none") continue;
+            decorateSelectionUi(pane);
+        }
+        // Header select-all checkbox
+        syncHeaderSelectAll();
+    }
+
+    function syncHeaderSelectAll() {
+        const rowOpts = getRowSelection?.();
+        const headerCbHost = root.parentElement?.querySelector?.(
+            `.fg-shell__leaf-cell[data-field="${SELECTION_COL_ID}"]`,
+        );
+        if (!headerCbHost || !rowOpts || rowOpts.mode !== "multiRow") {
+            headerCbHost
+                ?.querySelector?.("input.fg-shell__selection-cb--all")
+                ?.remove();
+            return;
+        }
+        if (rowOpts.headerCheckbox === false) return;
+        let input = headerCbHost.querySelector(
+            "input.fg-shell__selection-cb--all",
+        );
+        if (!input) {
+            input = document.createElement("input");
+            input.type = "checkbox";
+            input.className =
+                "fg-shell__selection-cb fg-shell__selection-cb--all";
+            input.title = "Select all";
+            input.addEventListener("click", (e) => {
+                e.stopPropagation();
+                if (input.checked) rowSelectionCtrl?.selectAll();
+                else rowSelectionCtrl?.deselectAll();
+            });
+            headerCbHost.appendChild(input);
+        }
+        const nodes = rowSelectionCtrl?.getRowNodes?.() || [];
+        const selectable = nodes.filter((n) =>
+            rowSelectionCtrl.isSelectable(n),
+        );
+        const selected = selectable.filter((n) => n.isSelected?.());
+        input.checked =
+            selectable.length > 0 && selected.length === selectable.length;
+        input.indeterminate =
+            selected.length > 0 && selected.length < selectable.length;
+    }
+
+    function notifyDisplayedRows() {
+        onDisplayedRowCount?.(numRows);
+    }
+
+    /**
      * Decorate auto-group cells with indent + expand/collapse control.
      * @param {ReturnType<typeof makePane>} pane
      */
@@ -993,6 +1397,8 @@ export function createBodyViewport({
             flashChangedCells(p);
         }
         await updateStickyGroups();
+        notifyDisplayedRows();
+        refreshSelectionPaint();
     }
 
     function measureColumnWidths() {
@@ -1033,7 +1439,7 @@ export function createBodyViewport({
         };
         prevCellValues.clear();
         rowPathCache = null;
-        viewFields = fields.filter((f) => f !== AUTO_GROUP_COL_ID);
+        viewFields = fields.filter((f) => !isSyntheticField(f));
         ensureDetailModel();
         try {
             if (rowModelActive() && detailModel && view) {
@@ -1111,6 +1517,7 @@ export function createBodyViewport({
         onEngineUpdate,
         measureColumnWidths,
         applyPinnedLayout,
+        refreshSelectionPaint,
         get scrollLeft() {
             return centerPane.table.scrollLeft || 0;
         },

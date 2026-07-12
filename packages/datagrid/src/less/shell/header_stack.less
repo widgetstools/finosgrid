@@ -622,3 +622,162 @@
         box-shadow: none;
     }
 }
+
+/* ── Selection (row + cell/range) ─────────────────────────────────────────── */
+/* Use high specificity so zebra / pinned backgrounds cannot punch holes in range fill. */
+
+.fg-shell__body-rt tbody tr td.fg-shell__cell--row-selected,
+.fg-shell__body-pane--left
+    .fg-shell__body-rt
+    tbody
+    tr
+    td.fg-shell__cell--row-selected,
+.fg-shell__body-pane--right
+    .fg-shell__body-rt
+    tbody
+    tr
+    td.fg-shell__cell--row-selected {
+    background-color: rgba(33, 150, 243, 0.12) !important;
+}
+
+.fg-shell__body-rt tbody tr td.fg-shell__cell--range-selected,
+.fg-shell__body-pane--left
+    .fg-shell__body-rt
+    tbody
+    tr
+    td.fg-shell__cell--range-selected,
+.fg-shell__body-pane--right
+    .fg-shell__body-rt
+    tbody
+    tr
+    td.fg-shell__cell--range-selected {
+    background-color: rgba(33, 150, 243, 0.22) !important;
+}
+
+.fg-shell__body-rt
+    tbody
+    tr
+    td.fg-shell__cell--row-selected.fg-shell__cell--range-selected,
+.fg-shell__body-pane--left
+    .fg-shell__body-rt
+    tbody
+    tr
+    td.fg-shell__cell--row-selected.fg-shell__cell--range-selected,
+.fg-shell__body-pane--right
+    .fg-shell__body-rt
+    tbody
+    tr
+    td.fg-shell__cell--row-selected.fg-shell__cell--range-selected {
+    background-color: rgba(33, 150, 243, 0.28) !important;
+}
+
+/* Range perimeter — inset box-shadow so borders stay inside the cell */
+.fg-shell__body-rt td.fg-shell__cell--range-top {
+    box-shadow: inset 0 2px 0 0 #2196f3;
+}
+.fg-shell__body-rt td.fg-shell__cell--range-bottom {
+    box-shadow: inset 0 -2px 0 0 #2196f3;
+}
+.fg-shell__body-rt td.fg-shell__cell--range-left {
+    box-shadow: inset 2px 0 0 0 #2196f3;
+}
+.fg-shell__body-rt td.fg-shell__cell--range-right {
+    box-shadow: inset -2px 0 0 0 #2196f3;
+}
+.fg-shell__body-rt td.fg-shell__cell--range-top.fg-shell__cell--range-left {
+    box-shadow: inset 2px 0 0 0 #2196f3, inset 0 2px 0 0 #2196f3;
+}
+.fg-shell__body-rt td.fg-shell__cell--range-top.fg-shell__cell--range-right {
+    box-shadow: inset -2px 0 0 0 #2196f3, inset 0 2px 0 0 #2196f3;
+}
+.fg-shell__body-rt td.fg-shell__cell--range-bottom.fg-shell__cell--range-left {
+    box-shadow: inset 2px 0 0 0 #2196f3, inset 0 -2px 0 0 #2196f3;
+}
+.fg-shell__body-rt td.fg-shell__cell--range-bottom.fg-shell__cell--range-right {
+    box-shadow: inset -2px 0 0 0 #2196f3, inset 0 -2px 0 0 #2196f3;
+}
+.fg-shell__body-rt
+    td.fg-shell__cell--range-top.fg-shell__cell--range-bottom.fg-shell__cell--range-left {
+    box-shadow:
+        inset 2px 0 0 0 #2196f3,
+        inset 0 2px 0 0 #2196f3,
+        inset 0 -2px 0 0 #2196f3;
+}
+.fg-shell__body-rt
+    td.fg-shell__cell--range-top.fg-shell__cell--range-bottom.fg-shell__cell--range-right {
+    box-shadow:
+        inset -2px 0 0 0 #2196f3,
+        inset 0 2px 0 0 #2196f3,
+        inset 0 -2px 0 0 #2196f3;
+}
+.fg-shell__body-rt
+    td.fg-shell__cell--range-top.fg-shell__cell--range-left.fg-shell__cell--range-right {
+    box-shadow:
+        inset 2px 0 0 0 #2196f3,
+        inset -2px 0 0 0 #2196f3,
+        inset 0 2px 0 0 #2196f3;
+}
+.fg-shell__body-rt
+    td.fg-shell__cell--range-bottom.fg-shell__cell--range-left.fg-shell__cell--range-right {
+    box-shadow:
+        inset 2px 0 0 0 #2196f3,
+        inset -2px 0 0 0 #2196f3,
+        inset 0 -2px 0 0 #2196f3;
+}
+.fg-shell__body-rt
+    td.fg-shell__cell--range-top.fg-shell__cell--range-bottom.fg-shell__cell--range-left.fg-shell__cell--range-right {
+    box-shadow:
+        inset 2px 0 0 0 #2196f3,
+        inset -2px 0 0 0 #2196f3,
+        inset 0 2px 0 0 #2196f3,
+        inset 0 -2px 0 0 #2196f3;
+}
+
+/* Focused cell — stronger border on top of range chrome */
+.fg-shell__body-rt td.fg-shell__cell--range-focus {
+    outline: 2px solid #1565c0;
+    outline-offset: -2px;
+    z-index: 1;
+    position: relative;
+}
+
+.fg-shell__selection-cell {
+    text-align: center;
+    padding: 0 !important;
+    justify-content: center;
+}
+
+.fg-shell__selection-cb {
+    width: 14px;
+    height: 14px;
+    margin: 0;
+    cursor: pointer;
+    accent-color: #2196f3;
+}
+
+.fg-shell__leaf-cell[data-field="ag-Grid-SelectionColumn"] {
+    justify-content: center;
+    padding: 0 4px;
+}
+
+.fg-shell__leaf-cell[data-field="ag-Grid-SelectionColumn"]
+    .fg-shell__selection-cb--all {
+    margin: 0 auto;
+}
+
+.fg-shell__fill-handle {
+    position: absolute;
+    width: 8px;
+    height: 8px;
+    background: #2196f3;
+    border: 1px solid #fff;
+    box-sizing: border-box;
+    cursor: crosshair;
+    z-index: 6;
+    pointer-events: auto;
+}
+
+.fg-shell__body-rt td.fg-shell__cell--header-highlight {
+    outline: 1px solid rgba(33, 150, 243, 0.55);
+    outline-offset: -1px;
+}

@@ -43,7 +43,7 @@ Public column/grid shapes match **ag-grid-community v35+**:
 | `GridApi.setColumnGroupOpened` / `getColumnGroupState` / `setColumnGroupState` / `resetColumnGroupState` / `setGridOption` | implemented subset |
 | `marryChildren` / sticky labels / `suppressStickyLabel` / pin-split groups | implemented (see [column groups & aggregation reference](./2026-07-12-ag-column-groups-and-aggregation-reference.md)) |
 
-Unimplemented AG properties may be present on defs and are preserved; they are no-ops until wired. Full feature matrix: [AG column groups & aggregation reference](./2026-07-12-ag-column-groups-and-aggregation-reference.md).
+Unimplemented AG properties may be present on defs and are preserved; they are no-ops until wired. Full feature matrix: [AG column groups & aggregation reference](./2026-07-12-ag-column-groups-and-aggregation-reference.md). Complete UI/API catalog (incl. menus, master detail, tree): [AG Grid complete feature catalog](./2026-07-12-ag-grid-complete-feature-catalog.md). Master Detail & Tree plan: [plan](../plans/2026-07-12-master-detail-and-tree-data.md).
 
 ```js
 import { createGrid } from "@widgetstools/finosgrid/shell";

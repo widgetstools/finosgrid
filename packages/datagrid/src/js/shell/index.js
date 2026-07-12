@@ -60,6 +60,14 @@ export {
     stickyTotalLabel,
 } from "./detail_row_model.js";
 export {
+    SELECTION_COL_ID,
+    normalizeRowSelection,
+    normalizeCellSelection,
+    wantsSelectionColumn,
+} from "./selection_options.js";
+export { createRowSelectionController } from "./row_selection.js";
+export { createCellSelectionController } from "./cell_selection.js";
+export {
     lucideIcon,
     iconChevronRight,
     iconChevronDown,

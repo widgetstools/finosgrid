@@ -254,11 +254,23 @@ export function createHeaderStack({
         let fields = columnState.orderVisible(wanted);
         for (const f of wanted) {
             if (fields.includes(f)) continue;
-            if (f === "ag-Grid-AutoColumn") fields = [f, ...fields];
+            if (f === "ag-Grid-AutoColumn" || f === "ag-Grid-SelectionColumn")
+                fields = [f, ...fields.filter((x) => x !== f)];
             else fields.push(f);
         }
         // Drop fields no longer visible
         fields = fields.filter((f) => byField.has(f));
+        // Stable leading order: selection column, then auto-group
+        const lead = [];
+        if (fields.includes("ag-Grid-SelectionColumn"))
+            lead.push("ag-Grid-SelectionColumn");
+        if (fields.includes("ag-Grid-AutoColumn")) lead.push("ag-Grid-AutoColumn");
+        if (lead.length) {
+            fields = [
+                ...lead,
+                ...fields.filter((f) => !lead.includes(f)),
+            ];
+        }
         return fields.map((f) => byField.get(f)).filter(Boolean);
     }
 
